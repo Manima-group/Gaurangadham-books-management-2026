@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gaurangadham
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # Automatic daily backup at 02:00 IST into ./backups (newest 30 kept).
+  backup:
+    image: postgres:16
+    restart: unless-stopped
+    depends_on: [db]
+    environment:
+      PGPASSWORD: postgres
+      TZ: Asia/Kolkata
+      KEEP: "30"
+    volumes:
+      - ./backups:/backups
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Backup service started; next backup at 02:00 IST"
+        while true; do
+          now=$$(date +%s); next=$$(date -d 'tomorrow 02:00' +%s); [ $$(date +%H) -lt 2 ] && next=$$(date -d 'today 02:00' +%s)
+          sleep $$((next - now))
+          f=/backups/gaurangadham-$$(date +%F_%H-%M).dump
+          if pg_dump -h db -U postgres -Fc gaurangadham -f "$$f"; then echo "saved $$f"; else echo "BACKUP FAILED"; rm -f "$$f"; fi
+          ls -1t /backups/gaurangadham-*.dump 2>/dev/null | tail -n +$$((KEEP + 1)) | xargs -r rm -f
+        done
+
+volumes:
+  pgdata:

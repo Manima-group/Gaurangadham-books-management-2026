@@ -1,0 +1,242 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/plus-jakarta-sans";
+/* Button variants are built dynamically (btn-${variant}); make sure all are generated */
+@source inline("btn-primary btn-secondary btn-danger btn-success btn-warn btn-sm");
+
+@theme {
+  --font-sans: "Inter Variable", "Segoe UI", system-ui, -apple-system, "Noto Sans", Arial, sans-serif;
+  --font-display: "Plus Jakarta Sans Variable", "Inter Variable", "Segoe UI", system-ui, sans-serif;
+
+  /* Saffron — action colour (buttons, active states) */
+  --color-brand-50: #fff6ed;
+  --color-brand-100: #ffead5;
+  --color-brand-200: #fed1aa;
+  --color-brand-300: #fdb174;
+  --color-brand-400: #fb8a3c;
+  --color-brand-500: #f26b1d;
+  --color-brand-600: #d95512;
+  --color-brand-700: #b43f10;
+  --color-brand-800: #8f3314;
+  --color-brand-900: #742c14;
+
+  /* Ink — deep navy text, easier on the eyes than pure black */
+  --color-ink-900: #0f1d3a;
+  --color-ink-800: #1b2b4f;
+  --color-ink-700: #34446b;
+  --color-ink-500: #5d6985;
+  --color-ink-400: #8792ab;
+
+  /* Navy — sidebar & intro background */
+  --color-navy-950: #081129;
+  --color-navy-900: #0d1b40;
+  --color-navy-800: #142759;
+  --color-navy-700: #1d3772;
+  --color-navy-600: #2a4a94;
+
+  --color-paper: #f8f5ef;
+
+  --shadow-card: 0 1px 2px rgb(15 29 58 / 0.04), 0 4px 16px -4px rgb(15 29 58 / 0.08);
+  --shadow-lift: 0 2px 4px rgb(15 29 58 / 0.06), 0 12px 28px -8px rgb(15 29 58 / 0.18);
+
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background:
+    radial-gradient(1200px 500px at 100% -10%, rgb(242 107 29 / 0.06), transparent 60%),
+    radial-gradient(900px 400px at -10% 110%, rgb(29 55 114 / 0.05), transparent 60%),
+    var(--color-paper);
+  background-attachment: fixed;
+  color: var(--color-ink-800);
+  font-feature-settings: "cv11", "ss01";
+}
+h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0.015em; }
+::selection { background: var(--color-brand-200); color: var(--color-ink-900); }
+
+/* Large, comfortable tap targets everywhere */
+input, select, textarea { font-size: 16px; }
+@utility field-input {
+  @apply w-full rounded-xl border border-stone-300/90 bg-white px-3.5 py-3 text-base text-ink-900 shadow-[inset_0_1px_2px_rgb(15_29_58/0.04)]
+         placeholder:text-ink-400 transition
+         hover:border-stone-400 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-100 disabled:bg-stone-100;
+}
+@utility btn {
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-semibold
+         transition duration-150 focus:outline-none focus-visible:ring-4 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100;
+}
+@utility btn-primary { @apply btn bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-[0_1px_0_rgb(255_255_255/0.25)_inset,0_6px_14px_-6px_rgb(217_85_18/0.7)] hover:from-brand-600 hover:to-brand-700 focus-visible:ring-brand-200; }
+@utility btn-secondary { @apply btn border border-stone-300 bg-white text-ink-800 shadow-sm hover:border-stone-400 hover:bg-stone-50 focus-visible:ring-stone-200; }
+@utility btn-danger { @apply btn bg-red-600 text-white shadow-sm hover:bg-red-700 focus-visible:ring-red-200; }
+@utility btn-success { @apply btn bg-gradient-to-b from-emerald-500 to-emerald-600 text-white shadow-[0_6px_14px_-6px_rgb(5_150_105/0.7)] hover:from-emerald-600 hover:to-emerald-700 focus-visible:ring-emerald-200; }
+@utility btn-warn { @apply btn bg-gradient-to-b from-amber-400 to-amber-500 text-amber-950 shadow-[0_6px_14px_-6px_rgb(217_119_6/0.7)] hover:from-amber-500 hover:to-amber-600 focus-visible:ring-amber-200; }
+@utility btn-sm { @apply min-h-10 px-3.5 py-2 text-sm; }
+
+.data-table { @apply w-full text-left text-sm; }
+.data-table th { @apply bg-stone-50/80 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-500 first:rounded-l-lg last:rounded-r-lg; }
+.data-table td { @apply border-t border-stone-100 px-3 py-3 align-top text-ink-800; }
+.data-table tbody tr { @apply transition-colors; }
+.data-table tbody tr:hover td { @apply bg-brand-50/50; }
+
+/* ------------------------------------------------------------------ */
+/* 3D spiritual intro — "Manima AI-Tech Solutions presents"           */
+/* ------------------------------------------------------------------ */
+.no-splash #intro-splash { display: none; }
+
+#intro-splash {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+  background:
+    radial-gradient(700px 520px at 50% 38%, rgb(42 74 148 / 0.6), transparent 70%),
+    linear-gradient(180deg, #050b1f 0%, #0b1638 55%, #1a1a3a 100%);
+  color: white;
+  transition: opacity 0.9s ease, visibility 0.9s ease, transform 0.9s ease;
+}
+#intro-splash.is-leaving { opacity: 0; visibility: hidden; transform: scale(1.06); }
+
+/* Rotating rays of divine light */
+.intro-rays {
+  position: absolute; left: 50%; top: 38%; width: 170vmax; height: 170vmax; translate: -50% -50%;
+  background: repeating-conic-gradient(from 0deg, rgb(253 177 116 / 0.10) 0deg 5deg, transparent 5deg 15deg);
+  -webkit-mask-image: radial-gradient(circle, black 0%, transparent 55%);
+  mask-image: radial-gradient(circle, black 0%, transparent 55%);
+  opacity: 0; animation: intro-fade-in 2s 0.4s ease forwards, intro-spin 60s linear infinite;
+}
+.intro-dawn {
+  position: absolute; inset: auto 0 -30% 0; height: 70%;
+  background: radial-gradient(60% 60% at 50% 100%, rgb(242 107 29 / 0.45), rgb(242 107 29 / 0.12) 45%, transparent 70%);
+  opacity: 0; animation: intro-fade-in 2.5s 0.2s ease forwards;
+}
+@keyframes intro-fade-in { to { opacity: 1; } }
+@keyframes intro-spin { to { rotate: 360deg; } }
+
+/* Diya sparks rising */
+.intro-sparks span {
+  position: absolute; bottom: -10px; border-radius: 9999px;
+  background: radial-gradient(circle, #fff6ed 0%, #fdb174 40%, rgb(242 107 29 / 0) 70%);
+  box-shadow: 0 0 10px 2px rgb(251 138 60 / 0.55);
+  opacity: 0; animation-name: intro-rise; animation-timing-function: linear; animation-iteration-count: infinite;
+}
+@keyframes intro-rise {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  10% { opacity: 0.9; }
+  70% { opacity: 0.6; }
+  100% { transform: translate(var(--drift, 0px), -105vh) scale(0.4); opacity: 0; }
+}
+
+/* Sacred mandala */
+.intro-mandala { opacity: 0; animation: intro-mandala-in 2.2s 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) forwards; }
+@keyframes intro-mandala-in { from { opacity: 0; scale: 0.6; } to { opacity: 0.55; scale: 1; } }
+.mandala-cw, .mandala-ccw, .mandala-cw-slow { transform-box: fill-box; transform-origin: 50% 50%; }
+.mandala-cw { animation: intro-turn 40s linear infinite; }
+.mandala-ccw { animation: intro-turn 30s linear infinite reverse; }
+.mandala-cw-slow { animation: intro-turn 90s linear infinite; }
+@keyframes intro-turn { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.intro-halo {
+  background: radial-gradient(circle, rgb(255 246 237 / 0.35) 0%, rgb(251 138 60 / 0.22) 35%, transparent 68%);
+  filter: blur(6px); opacity: 0;
+  animation: intro-fade-in 1.4s 1.2s ease forwards, intro-breathe 3.6s 2.6s ease-in-out infinite;
+}
+@keyframes intro-breathe { 0%, 100% { scale: 1; } 50% { scale: 1.08; } }
+
+/* The 3D emblem */
+.intro-stage { perspective: 1100px; perspective-origin: 50% 40%; }
+.intro-emblem-entry {
+  transform-style: preserve-3d; opacity: 0;
+  animation: intro-emblem-in 2.4s 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes intro-emblem-in {
+  0% { opacity: 0; transform: translateZ(-900px) rotateY(-150deg) rotateX(18deg); }
+  35% { opacity: 1; }
+  100% { opacity: 1; transform: translateZ(0) rotateY(0deg) rotateX(0deg); }
+}
+.intro-emblem-float {
+  transform-style: preserve-3d;
+  animation: intro-float 5.5s 2.9s ease-in-out infinite;
+}
+@keyframes intro-float {
+  0%, 100% { transform: rotateY(-16deg) rotateX(4deg) translateY(0); }
+  50% { transform: rotateY(16deg) rotateX(-3deg) translateY(-8px); }
+}
+.intro-layer { backface-visibility: visible; }
+.intro-face {
+  transform: translateZ(1px);
+  filter: drop-shadow(0 0 18px rgb(253 177 116 / 0.55)) drop-shadow(0 0 2px rgb(255 246 237 / 0.9));
+}
+.intro-sheen {
+  transform: translateZ(2px);
+  -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.95) 50%, transparent 62%) no-repeat;
+  background-size: 250% 100%; background-position: 160% 0;
+  animation: intro-sheen 1.6s 2.6s ease-in-out forwards, intro-sheen 1.6s 5.4s ease-in-out forwards;
+}
+@keyframes intro-sheen { from { background-position: 160% 0; } to { background-position: -60% 0; } }
+
+/* Lotus blooming beneath the emblem */
+.lotus-petal { transform-origin: 0 0; transform: scaleY(0); animation: intro-bloom 1.1s cubic-bezier(0.2, 1.3, 0.4, 1) forwards; }
+@keyframes intro-bloom { to { transform: scaleY(1); } }
+
+/* Text */
+.intro-in { opacity: 0; animation: intro-in 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) forwards; }
+@keyframes intro-in { from { opacity: 0; transform: translateY(14px); filter: blur(4px); } to { opacity: 1; transform: none; filter: blur(0); } }
+
+.intro-brand { perspective: 600px; }
+.intro-letter3d {
+  display: inline-block; opacity: 0; transform-origin: 50% 100%;
+  background: linear-gradient(180deg, #ffffff 10%, #ffe2c7 55%, #fb8a3c 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 0 24px rgb(251 138 60 / 0.25);
+  animation: intro-letter3d 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.2) forwards;
+}
+@keyframes intro-letter3d {
+  from { opacity: 0; transform: rotateX(-95deg) translateY(10px); }
+  to { opacity: 1; transform: rotateX(0) translateY(0); }
+}
+
+.intro-portrait { box-shadow: 0 0 28px rgb(251 138 60 / 0.55); }
+.intro-rule { opacity: 0; animation: intro-in 0.8s 4.2s ease forwards; }
+
+.intro-progress { transform-origin: left; animation: intro-progress var(--intro-duration, 7s) linear forwards; }
+@keyframes intro-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  #intro-splash *, #intro-splash *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; }
+  .intro-progress { animation-duration: var(--intro-duration, 2s) !important; }
+}
+
+/* Comfortable tap area for text links (≥40px tall) without changing how they look */
+@utility tap { @apply inline-flex min-h-10 items-center; }
+
+/* ------------------------------------------------------------------ */
+/* Loading: shimmer + 3D book with turning pages                       */
+/* ------------------------------------------------------------------ */
+.shimmer {
+  background: linear-gradient(100deg, rgb(231 229 228 / 0.7) 30%, rgb(255 255 255 / 0.9) 50%, rgb(231 229 228 / 0.7) 70%);
+  background-size: 300% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+.book3d { position: relative; width: 84px; height: 64px; perspective: 600px; }
+.book3d-inner { position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateX(52deg) rotateZ(-14deg); animation: book3d-float 2.4s ease-in-out infinite; }
+.book3d-back, .book3d-page, .book3d-cover { position: absolute; top: 0; left: 50%; width: 50%; height: 100%; transform-origin: 0 50%; border-radius: 0 6px 6px 0; }
+.book3d-back { left: 0; width: 100%; border-radius: 6px; background: linear-gradient(135deg, #142759, #0d1b40); transform: translateZ(-3px); box-shadow: 0 0 0 2px #0d1b40; }
+.book3d-page { background: linear-gradient(90deg, #f3e7d9, #fffaf3 40%); box-shadow: inset 3px 0 6px -3px rgb(0 0 0 / 0.25); animation: book3d-turn 1.8s cubic-bezier(0.45, 0, 0.25, 1) infinite; }
+.book3d-page.p1 { animation-delay: 0s; }
+.book3d-page.p2 { animation-delay: 0.22s; }
+.book3d-page.p3 { animation-delay: 0.44s; }
+.book3d-cover { background: linear-gradient(135deg, #fb8a3c, #d95512 60%, #b43f10); display: flex; align-items: center; justify-content: center; color: #fff6ed; font-size: 18px; font-weight: 800; transform: rotateY(-178deg); backface-visibility: hidden; }
+.book3d-cover span { transform: scaleX(-1); }
+.book3d-shadow { position: absolute; left: 8%; right: 8%; bottom: -14px; height: 10px; border-radius: 50%; background: radial-gradient(rgb(15 29 58 / 0.25), transparent 70%); animation: book3d-shadow 2.4s ease-in-out infinite; }
+@keyframes book3d-turn { 0%, 12% { transform: rotateY(0deg); } 55%, 100% { transform: rotateY(-178deg); } }
+@keyframes book3d-float { 0%, 100% { transform: rotateX(52deg) rotateZ(-14deg) translateZ(0); } 50% { transform: rotateX(52deg) rotateZ(-14deg) translateZ(10px); } }
+@keyframes book3d-shadow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.85); } }
+@media (prefers-reduced-motion: reduce) { .shimmer, .book3d-inner, .book3d-page, .book3d-shadow { animation: none !important; } }
