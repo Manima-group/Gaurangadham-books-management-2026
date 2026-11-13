@@ -10,7 +10,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
 
-const client = postgres(process.env.DATABASE_URL!, { max: 1 });
+const client = postgres((process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL)!, { max: 1 });
 const db = drizzle(client, { schema });
 
 const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());

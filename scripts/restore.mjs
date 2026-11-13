@@ -7,7 +7,7 @@ import readline from "node:readline/promises";
 import path from "node:path";
 import { findTool, dbParts } from "./pgtools.mjs";
 
-const url = process.env.DATABASE_URL;
+const url = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
 let file = process.argv.slice(2).find((a) => !a.startsWith("--"));
 if (!file) {
   const dir = path.resolve(process.env.BACKUP_DIR || "backups");

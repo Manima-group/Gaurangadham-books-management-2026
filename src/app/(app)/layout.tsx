@@ -11,6 +11,7 @@ import { logoutAction } from "@/app/actions/auth";
 import { APP_NAME, APP_TAGLINE, MANIMA_LOGO_LIGHT_SVG, MANIMA_NAME, MANIMA_URL } from "@/lib/brand";
 import { BrandMark } from "@/components/brandmark";
 import { OfflineSync } from "@/components/pwa";
+import { NavLoader } from "@/components/navloader";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const u = await requireUser();
@@ -101,7 +102,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         <OfflineSync userId={u.id} role={u.role} />
-        <main className="mx-auto w-full max-w-6xl flex-1 animate-fade-up px-4 pb-28 pt-6 sm:px-6 lg:pb-10">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 animate-fade-up px-4 pb-28 pt-6 sm:px-6 lg:pb-10">
+          <NavLoader>{children}</NavLoader>
+        </main>
       </div>
       <BottomNav items={items} />
     </div>

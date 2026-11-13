@@ -110,6 +110,24 @@ Offline: pages a devotee uses (Home, Today's Sales, My Books, Submit Money, My R
 - **Loading:** shimmer skeleton pages plus a 3D book loader in the middle while a page loads.
 - **Fast forms:** forms call the server directly with their own pending state (no stuck "Sending…"), and never clear what you typed on an error.
 
+## Hosting on Neon (free Postgres) + Vercel
+
+This repo is linked to Neon project `soft-brook-34636290` (branch `production`) via `neon.ts` / `.neon`.
+
+```bash
+npm i -g neon@latest
+neon login                 # finish sign-in in the browser
+neon deploy                # or: neon env pull  → writes DATABASE_URL + DATABASE_URL_UNPOOLED into .env
+npm run db:push            # uses DATABASE_URL_UNPOOLED (direct) for migrations
+SEED_EMPTY=1 npm run db:seed
+npm run build && npm start
+```
+
+- **App traffic** uses `DATABASE_URL` = Neon's pooled (`-pooler`) string. The driver runs with `prepare: false` and only transaction-scoped advisory locks, so it is safe behind PgBouncer.
+- **Migrations, seed, backup/restore** use `DATABASE_URL_UNPOOLED` (direct) when it is set.
+- DB sessions are set to `Asia/Kolkata`, so SQL dates match the app's IST dates (Neon runs in UTC).
+- On Vercel add `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` as environment variables.
+
 ## Tests
 
 | Command | What it checks |
