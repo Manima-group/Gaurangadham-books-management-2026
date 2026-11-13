@@ -6,7 +6,8 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { findTool, dbParts } from "./pgtools.mjs";
 
-const url = process.env.DATABASE_URL;
+// pg_dump needs a direct (non-pooled) connection on Neon.
+const url = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
 if (!url) { console.error("DATABASE_URL is not set (check your .env)."); process.exit(1); }
 const dir = path.resolve(process.env.BACKUP_DIR || "backups");
 const keep = Number(process.env.BACKUP_KEEP || 30);

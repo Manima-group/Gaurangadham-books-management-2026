@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { createContext, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { createContext, startTransition, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import type { ActionState } from "@/lib/action";
 import { Alert } from "./ui";
@@ -25,20 +25,25 @@ export function useFormAction(action: (prev: ActionState, fd: FormData) => Promi
     const fd = new FormData(e.currentTarget, submitter);
     busy.current = true;
     setPending(true);
-    try {
-      const res = await action(last.current, fd);
-      setState(res ?? ({ status: "idle" } as ActionState));
-    } catch {
-      setState({
-        status: "error",
-        message: "Something went wrong. Please try again.",
-        detail: "If this keeps happening, check your internet connection.",
-        at: Date.now(),
-      } as ActionState);
-    } finally {
-      busy.current = false;
-      setPending(false);
-    }
+    // Run inside a transition so Next applies the refreshed page together with our result.
+    startTransition(async () => {
+      let res: ActionState;
+      try {
+        res = (await action(last.current, fd)) ?? ({ status: "idle" } as ActionState);
+      } catch {
+        res = {
+          status: "error",
+          message: "Something went wrong. Please try again.",
+          detail: "If this keeps happening, check your internet connection.",
+          at: Date.now(),
+        } as ActionState;
+      }
+      startTransition(() => {
+        setState(res);
+        busy.current = false;
+        setPending(false);
+      });
+    });
   };
   return { state, onSubmit, pending };
 }

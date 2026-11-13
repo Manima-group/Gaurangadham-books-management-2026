@@ -35,11 +35,11 @@ with sync_playwright() as p:
     d.screenshot(path="shots/n-sales-2places.png", full_page=True)
     d.click("button:has-text('Send ✓')")
     expect(d.get_by_text(re.compile("saved. 🙏|are sent 🙏")).first).to_be_visible(timeout=20000)
-    rid = q("select r.id from daily_report r join \"user\" u on u.id=r.devotee_id where u.phone='9000000013' and report_date=current_date")
+    rid = q("select r.id from daily_report r join \"user\" u on u.id=r.devotee_id where u.phone='9000000013' and report_date=(now() at time zone 'Asia/Kolkata')::date")
     check("report has 2 places", q(f"select count(*) from daily_report_venue where report_id={rid}") == "2")
     check("report totals 6 books", q(f"select total_sold from daily_report where id={rid}") == "6")
     # place name required when books entered
-    d.goto(B+"/my/sales?date=" + q("select to_char(current_date-2,'YYYY-MM-DD')")); settle(d)
+    d.goto(B+"/my/sales?date=" + q("select to_char((now() at time zone 'Asia/Kolkata')::date-2,'YYYY-MM-DD')")); settle(d)
     if d.locator("#venue_0_name").count():
         d.get_by_role("textbox", name=re.compile("sold at place 1")).first.fill("1"); d.click("button:has-text('Send ✓')")
         check("place name required", d.get_by_text("Please write the place name").first.is_visible())
@@ -59,12 +59,15 @@ with sync_playwright() as p:
     expect(m.get_by_text("Books assigned to").first).to_be_visible()
     m.goto(B+"/my/sales"); settle(m); m.fill("#venue_0_name", "Temple gate"); m.get_by_label("Chant and Be Happy (English) sold at place 1", exact=True).fill("2"); m.click("button:has-text('Send ✓')")
     expect(m.get_by_text(re.compile("Your stock is updated|are approved")).first).to_be_visible(timeout=20000)
-    check("manager own report auto-approved", q("select status from daily_report r join \"user\" u on u.id=r.devotee_id where u.phone='9000000002' and report_date=current_date") == "approved")
+    check("manager own report auto-approved", q("select status from daily_report r join \"user\" u on u.id=r.devotee_id where u.phone='9000000002' and report_date=(now() at time zone 'Asia/Kolkata')::date") == "approved")
     m.goto(B+"/my/books"); settle(m); check("manager My Books shows 3 left", m.get_by_text("3").count() > 0 and m.get_by_text("Chant and Be Happy").count() == 1)
     # ---------- Delete approved report → stock reversed
     sold_before = q(f"select coalesce(sum(qty),0) from stock_movement where report_id={rid} and kind='sold' and reversed_by is null")
     m.goto(f"{B}/reports/{rid}"); settle(m); m.click("text=🗑 Delete report"); m.click("button:has-text('Yes, delete')")
-    expect(m).to_have_url(re.compile("/reports$|/reports\\?"), timeout=20000); 
+    try: expect(m).to_have_url(re.compile("/reports$|/reports\\?"), timeout=20000)
+    except AssertionError:
+        m.screenshot(path="shots/n-del-fail.png", full_page=True); print("DEL-FAIL still exists:", q(f"select count(*) from daily_report where id={rid}")); raise
+    
     check("approved report deleted + stock reversed", q(f"select count(*) from daily_report where id={rid}") == "0" and q(f"select count(*) from stock_movement where report_id={rid} and kind='sold' and reversed_by is null") == "0" and sold_before == "6")
     # ---------- Undo a movement
     corr0 = int(q("select count(*) from stock_movement where kind='correction'"))
@@ -99,10 +102,15 @@ with sync_playwright() as p:
     a.goto(B+"/drives"); settle(a); li = a.locator("li", has_text="Kartik").first; li.locator("summary").click(); li.locator("text=🗑 Delete drive").click(); li.locator("button:has-text('Yes, delete')").click(); a.wait_for_timeout(1500)
     check("delete drive", q("select count(*) from campaign") == "0")
     # ---------- Loader appears during navigation
-    a.goto(B+"/dashboard"); settle(a); a.route("**/*", lambda r: (__import__('time').sleep(0.8), r.continue_())[1] if "_rsc" in r.request.url else r.continue_())
-    a.click("a[href='/monitor'] >> nth=0"); a.wait_for_timeout(300)
-    check("3D book loader shows while loading", a.locator(".book3d").count() >= 1)
-    a.screenshot(path="shots/n-loader.png"); a.unroute("**/*")
+    a.goto(B+"/dashboard"); settle(a)
+    cdp = a.context.new_cdp_session(a); cdp.send("Network.enable")
+    cdp.send("Network.emulateNetworkConditions", {"offline": False, "latency": 2500, "downloadThroughput": -1, "uploadThroughput": -1})
+    a.click("a[href='/money'] >> nth=0"); a.wait_for_timeout(400)
+    check("3D book loader shows while loading", a.locator(".book3d").count() >= 1 and a.locator(".shimmer").count() >= 3)
+    a.screenshot(path="shots/n-loader.png")
+    cdp.send("Network.emulateNetworkConditions", {"offline": False, "latency": 0, "downloadThroughput": -1, "uploadThroughput": -1})
+    a.wait_for_url(re.compile("/money")); a.wait_for_timeout(1500)
+    check("loader goes away when page arrives", a.locator(".book3d").count() == 0)
     errs = d.errs + m.errs + a.errs
     check("no page errors", not errs); 
     if errs: print(errs)

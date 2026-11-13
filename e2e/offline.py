@@ -16,7 +16,7 @@ with sync_playwright() as p:
     cdp = ctx.new_cdp_session(chk); print("installable:", cdp.send("Page.getInstallabilityErrors").get("installabilityErrors")); cdp.detach(); chk.close()
     print("SW controlling page:", pg.evaluate("!!navigator.serviceWorker.controller"))
     print("pages saved for offline:", pg.evaluate("caches.open('gb-pages-v2').then(c=>c.keys()).then(k=>k.map(r=>new URL(r.url).pathname))"))
-    before = q("select count(*) from daily_report r join \"user\" u on u.id=r.devotee_id where u.phone='9000000013' and r.report_date=current_date")
+    before = q("select count(*) from daily_report r join \"user\" u on u.id=r.devotee_id where u.phone='9000000013' and r.report_date=(now() at time zone 'Asia/Kolkata')::date")
 
     # ---- go offline
     ctx.set_offline(True)
@@ -38,14 +38,14 @@ with sync_playwright() as p:
     pg.screenshot(path="/home/claude/shots/off-waiting.png")
     pg.goto(B+"/notifications"); pg.wait_for_timeout(800)
     print("unsaved page offline → offline screen:", pg.get_by_text("You're offline 📴").count() == 1)
-    print("DB while offline (report count today):", q("select count(*) from daily_report r join \"user\" u on u.id=r.devotee_id where u.phone='9000000013' and r.report_date=current_date"), "(was", before, ")")
+    print("DB while offline (report count today):", q("select count(*) from daily_report r join \"user\" u on u.id=r.devotee_id where u.phone='9000000013' and r.report_date=(now() at time zone 'Asia/Kolkata')::date"), "(was", before, ")")
 
     # ---- back online
     ctx.set_offline(False)
     pg.goto(B+"/dashboard"); 
     expect(pg.get_by_text(re.compile("saved offline .* sent"))).to_be_visible(timeout=20000)
     pg.screenshot(path="/home/claude/shots/off-sent.png")
-    st = q("select status||' sold='||total_sold from daily_report r join \"user\" u on u.id=r.devotee_id where u.phone='9000000013' and r.report_date=current_date")
+    st = q("select status||' sold='||total_sold from daily_report r join \"user\" u on u.id=r.devotee_id where u.phone='9000000013' and r.report_date=(now() at time zone 'Asia/Kolkata')::date")
     m1 = q("select count(*) from money_submission m join \"user\" u on u.id=m.devotee_id where u.phone='9000000013'")
     print("money entries: before", m0, "→ after reconnect", m1, "PASS" if int(m1) == int(m0) + 1 else "FAIL")
     print("after reconnect:", st, "| queue left:", pg.evaluate("JSON.parse(localStorage.getItem('gb-offline-queue')||'[]').length"))
