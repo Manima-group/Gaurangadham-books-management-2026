@@ -21,6 +21,7 @@ export default async function MyBooks() {
           <section className="rounded-3xl bg-white p-4 shadow-card ring-1 ring-stone-200/70">
             <BookList books={books} />
           </section>
+          <Link href="/my/history?tab=sales" className="btn-secondary w-full">🕘 See every sale & full history</Link>
           <Link href="/my/sales" className="btn-primary w-full">➕ Add Today's Sales</Link>
         </div>
       )}
