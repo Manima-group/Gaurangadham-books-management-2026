@@ -53,7 +53,7 @@ export default async function DhamDistribution({
         title={`${dham.name} — Who distributed?`}
         crumbs={[{ label: "Home", href: "/dashboard" }, ...(u.role === "admin" ? [{ label: "Dham-wise Distribution", href: "/distribution" }] : []), { label: dham.name }]}
         doHere={`See how many ${what} each devotee of ${dham.name} distributed. Change the period or book size with the buttons.`}
-        next="Tap a devotee to open their daily reports."
+        next="Tap a devotee to see their books, every sale and full history."
       />
       <div className="mb-4 space-y-2">
         <ChipLinks label="Period" items={PERIODS.map((p) => ({ href: q({ period: p }), label: PERIOD_LABEL[p], active: p === period }))} />
@@ -83,7 +83,7 @@ export default async function DhamDistribution({
           <ol className="space-y-2">
             {active.map((p, i) => (
               <li key={p.id}>
-                <a href={`/reports?devotee=${p.id}`} className="block rounded-xl border border-stone-200/80 p-3 transition hover:border-brand-300 hover:bg-brand-50/40">
+                <a href={`/dham/${id}/devotee/${p.id}`} className="block rounded-xl border border-stone-200/80 p-3 transition hover:border-brand-300 hover:bg-brand-50/40">
                   <div className="flex items-center gap-3">
                     <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold ${i < 3 ? "bg-brand-50 text-xl" : "bg-stone-100 text-sm text-ink-700"}`} aria-label={`Rank ${i + 1}`}>
                       {i < 3 ? MEDAL[i] : i + 1}
