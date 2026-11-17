@@ -6,6 +6,8 @@ import { toggleBook } from "@/app/actions/setup";
 import { fmtDateTime, inr } from "@/lib/format";
 import { Badge, BookCover, Card, EmptyState, PageHeader } from "@/components/ui";
 import { BookForm, PricesForm } from "./forms";
+import { BookImport } from "./import";
+import { COLUMNS } from "@/lib/book-import";
 import { DeleteButton } from "@/components/delete";
 import { deleteBook } from "@/app/actions/setup";
 
@@ -27,9 +29,12 @@ export default async function BooksPage() {
       <PageHeader
         title="Books & Prices"
         crumbs={[{ label: "Home", href: "/dashboard" }, { label: "Settings" }, { label: "Books & Prices" }]}
-        doHere="Add every book you distribute, with its Book Code and price. Update prices here whenever they change."
+        doHere="Add every book you distribute, with its Book Code and price — one by one, or many at once with Import books from Excel. Update prices here whenever they change."
         next="Once a book is added, receive copies of it in Book Stock. Devotees see the current price when they record sales."
       />
+      <Card id="import" title="📥 Import books from Excel" subtitle="Add or update many books at once — names, prices and copies received — from one Excel file." className="mb-4">
+        <BookImport columns={COLUMNS.map((c) => ({ header: c.header, required: c.required, example: c.example, help: c.help }))} />
+      </Card>
       <div className="grid gap-4 lg:grid-cols-5">
         <Card title="Add a Book" className="lg:col-span-2 lg:self-start"><BookForm /></Card>
         <Card title={`Book list (${books.length})`} className="lg:col-span-3">
