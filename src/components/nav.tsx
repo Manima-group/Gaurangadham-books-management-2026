@@ -6,11 +6,16 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { NavItem } from "@/lib/nav";
 
-function isActive(path: string, href: string) {
+function matches(path: string, href: string) {
   if (href === "/dashboard") return path === "/dashboard";
   if (href === "/stock") return path === "/stock" || (path.startsWith("/stock/") && !path.startsWith("/stock/assign-devotees"));
   return path === href || path.startsWith(href + "/");
 }
+/** Only the most specific matching item is active (e.g. Outreach Reports, not also Outreach Contacts). */
+function activeHref(path: string, items: NavItem[]) {
+  return items.filter((i) => matches(path, i.href)).sort((a, z) => z.href.length - a.href.length)[0]?.href;
+}
+const isActive = (path: string, href: string, items?: NavItem[]) => (items ? activeHref(path, items) === href : matches(path, href));
 
 function groupItems(items: NavItem[]) {
   const groups = new Map<string, NavItem[]>();
@@ -22,89 +27,72 @@ function groupItems(items: NavItem[]) {
   return [...groups.entries()];
 }
 
-function NavLink({ it, active, compact }: { it: NavItem; active: boolean; compact?: boolean }) {
+export type Badges = Record<string, number>;
+
+function Count({ n, active }: { n?: number; active?: boolean }) {
+  if (!n) return null;
+  return (
+    <span className={`ml-auto min-w-6 shrink-0 rounded-full px-2 py-0.5 text-center text-[11px] font-bold tabular-nums ${active ? "bg-white text-brand-700" : "bg-red-100 text-red-700"}`}>
+      {n > 99 ? "99+" : n}
+    </span>
+  );
+}
+
+function NavLink({ it, active, compact, badge }: { it: NavItem; active: boolean; compact?: boolean; badge?: number }) {
   return (
     <Link
       href={it.href}
       aria-current={active ? "page" : undefined}
       title={compact ? it.label : undefined}
-      className={`group flex items-center gap-3 rounded-xl text-[14.5px] font-medium transition ${compact ? "justify-center px-0 py-1.5" : "px-2.5 py-2"} ${
-        active ? "bg-white/[0.12] text-white" : "text-blue-100/75 hover:bg-white/[0.06] hover:text-white"
+      className={`group relative flex items-center gap-3 rounded-xl border-2 text-[14.5px] transition ${compact ? "justify-center px-0 py-1.5" : "px-2.5 py-2"} ${
+        active
+          ? "border-brand-700 bg-brand-500 font-bold text-white shadow-[0_6px_16px_-8px_rgb(217_85_18/0.9)]"
+          : "border-transparent font-medium text-ink-800 hover:border-stone-200 hover:bg-stone-50"
       }`}
     >
-      <span
-        aria-hidden
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base transition ${active ? "bg-brand-500 shadow-[0_4px_12px_-4px_rgb(242_107_29/0.9)]" : "bg-white/[0.05] group-hover:bg-white/10"}`}
-      >
+      <span aria-hidden className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[17px] ${active ? "bg-white/25" : "bg-stone-100 group-hover:bg-white"}`}>
         {it.icon}
       </span>
-      {compact ? <span className="sr-only">{it.label}</span> : <span className="min-w-0 truncate">{it.label}</span>}
-      {active && !compact && <span aria-hidden className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-400" />}
+      {compact ? (
+        <>
+          <span className="sr-only">{it.label}</span>
+          {!!badge && <span className="absolute right-1 top-0.5 h-2.5 w-2.5 rounded-full bg-red-600 ring-2 ring-white" aria-hidden />}
+        </>
+      ) : (
+        <>
+          <span className="min-w-0 truncate">{it.label}</span>
+          <Count n={badge} active={active} />
+        </>
+      )}
     </Link>
   );
 }
 
-/** Main menu. Sections fold open/closed; the section holding the current page is always open. */
-export function SideNav({ items, compact }: { items: NavItem[]; compact?: boolean }) {
+/** Main menu: every item always visible, grouped under small headings; the current page is filled saffron. */
+export function SideNav({ items, compact, badges = {} }: { items: NavItem[]; compact?: boolean; badges?: Badges }) {
   const path = usePathname();
+  const current = activeHref(path, items);
   const groups = groupItems(items);
-  if (compact)
-    return (
-      <nav aria-label="Main menu" className="space-y-1">
-        {groups.map(([g, list], i) => (
-          <ul key={g} className={`space-y-1 ${i ? "border-t border-white/10 pt-2" : ""}`}>
-            {list.map((it) => <li key={it.href}><NavLink it={it} active={isActive(path, it.href)} compact /></li>)}
-          </ul>
-        ))}
-      </nav>
-    );
   return (
-    <nav aria-label="Main menu" className="space-y-2">
-      {groups.map(([g, list]) => {
-        const links = (
-          <ul className="space-y-0.5">
-            {list.map((it) => <li key={it.href}><NavLink it={it} active={isActive(path, it.href)} /></li>)}
+    <nav aria-label="Main menu" className={compact ? "space-y-1" : "space-y-4"}>
+      {groups.map(([g, list], i) => (
+        <div key={g || "main"} className={compact && i ? "border-t border-stone-200 pt-2" : ""}>
+          {g && !compact && <p className="mb-1 px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-ink-500">{g}</p>}
+          <ul className="space-y-1">
+            {list.map((it) => (
+              <li key={it.href}>
+                <NavLink it={it} active={current === it.href} compact={compact} badge={badges[it.href]} />
+              </li>
+            ))}
           </ul>
-        );
-        if (!g) return <div key="main">{links}</div>;
-        const hasActive = list.some((it) => isActive(path, it.href));
-        return <NavGroup key={g + (hasActive ? ":a" : "")} title={g} open={hasActive}>{links}</NavGroup>;
-      })}
+        </div>
+      ))}
     </nav>
   );
 }
 
-function NavGroup({ title, open, children }: { title: string; open: boolean; children: React.ReactNode }) {
-  const key = `gb-nav-${title}`;
-  // Open by default; a section the person folded stays folded (unless it holds the current page).
-  const [isOpen, setOpen] = useState(true);
-  useEffect(() => {
-    if (open) return setOpen(true);
-    try {
-      setOpen(localStorage.getItem(key) !== "0");
-    } catch {}
-  }, [key, open]);
-  return (
-    <details
-      open={isOpen}
-      onToggle={(e) => {
-        const o = (e.currentTarget as HTMLDetailsElement).open;
-        setOpen(o);
-        try { localStorage.setItem(key, o ? "1" : "0"); } catch {}
-      }}
-      className="group/g border-t border-white/[0.08] pt-2 [&_summary::-webkit-details-marker]:hidden"
-    >
-      <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between rounded-lg px-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-200/55 transition hover:text-blue-100">
-        {title}
-        <span aria-hidden className="text-xs transition group-open/g:rotate-180">▾</span>
-      </summary>
-      <div className="pt-1">{children}</div>
-    </details>
-  );
-}
-
 /** Desktop sidebar that can fold down to an icon rail. The choice is remembered on this device. */
-export function DesktopSidebar({ items, brand, brandSmall, footer }: { items: NavItem[]; brand: React.ReactNode; brandSmall: React.ReactNode; footer: React.ReactNode }) {
+export function DesktopSidebar({ items, brand, brandSmall, footer, badges }: { items: NavItem[]; brand: React.ReactNode; brandSmall: React.ReactNode; footer: React.ReactNode; badges?: Badges }) {
   const [compact, setCompact] = useState(false);
   useEffect(() => {
     try { setCompact(localStorage.getItem("gb-sidebar") === "compact"); } catch {}
@@ -116,7 +104,7 @@ export function DesktopSidebar({ items, brand, brandSmall, footer }: { items: Na
     });
   };
   return (
-    <aside className={`sticky top-0 hidden h-dvh flex-col overflow-y-auto overflow-x-hidden bg-navy-900 py-4 text-white lg:flex ${compact ? "w-[4.75rem] px-2" : "w-[16.5rem] px-3"}`}>
+    <aside className={`sticky top-0 hidden h-dvh flex-col overflow-y-auto overflow-x-hidden border-r border-stone-200 bg-white py-4 lg:flex ${compact ? "w-[4.75rem] px-2" : "w-[16.5rem] px-3"}`}>
       <div className={`mb-5 flex items-center ${compact ? "flex-col gap-3" : "justify-between gap-2"}`}>
         {compact ? brandSmall : brand}
         <button
@@ -124,13 +112,13 @@ export function DesktopSidebar({ items, brand, brandSmall, footer }: { items: Na
           onClick={toggle}
           aria-label={compact ? "Expand menu" : "Collapse menu"}
           title={compact ? "Expand menu" : "Collapse menu"}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-blue-100/70 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-stone-200 text-ink-500 transition hover:bg-stone-50 hover:text-ink-900"
         >
           <span aria-hidden className="text-sm">{compact ? "»" : "«"}</span>
         </button>
       </div>
       <div className="flex-1">
-        <SideNav items={items} compact={compact} />
+        <SideNav items={items} compact={compact} badges={badges} />
       </div>
       {!compact && footer}
     </aside>
@@ -144,7 +132,7 @@ export function BottomNav({ items }: { items: NavItem[] }) {
     <nav aria-label="Quick menu" className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200/80 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_20px_-12px_rgb(15_29_58/0.25)] backdrop-blur lg:hidden">
       <ul className="grid" style={{ gridTemplateColumns: `repeat(${list.length}, minmax(0,1fr))` }}>
         {list.map((it) => {
-          const active = isActive(path, it.href);
+          const active = isActive(path, it.href, items);
           return (
             <li key={it.href}>
               <Link
@@ -165,7 +153,7 @@ export function BottomNav({ items }: { items: NavItem[] }) {
   );
 }
 
-export function MobileMenu({ items, children }: { items: NavItem[]; children?: React.ReactNode }) {
+export function MobileMenu({ items, children, badges }: { items: NavItem[]; children?: React.ReactNode; badges?: Badges }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const path = usePathname();
@@ -188,17 +176,17 @@ export function MobileMenu({ items, children }: { items: NavItem[]; children?: R
   const drawer = (
     <div className="fixed inset-0 z-[60] lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
       <div className="absolute inset-0 bg-navy-950/60 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
-      <div className="absolute inset-y-0 left-0 flex w-80 max-w-[86%] flex-col overflow-y-auto bg-navy-900 p-4 text-white shadow-2xl">
+      <div className="absolute inset-y-0 left-0 flex w-80 max-w-[86%] flex-col overflow-y-auto bg-white p-4 shadow-2xl">
         <div className="mb-5 flex items-center justify-between">
-          <span className="font-display text-lg font-bold">Menu</span>
+          <span className="font-display text-lg font-bold text-ink-900">Menu</span>
           <button
-            className="rounded-lg border border-white/20 px-3 py-1.5 text-sm text-white/90 hover:bg-white/10"
+            className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm text-ink-700 hover:bg-stone-50"
             onClick={() => setOpen(false)}
           >
             Close ✕
           </button>
         </div>
-        <SideNav items={items} />
+        <SideNav items={items} badges={badges} />
         {children}
       </div>
     </div>
