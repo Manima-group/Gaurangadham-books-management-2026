@@ -9,7 +9,7 @@ import { navBadges } from "@/lib/nav-badges";
 import { ROLE_LABEL } from "@/lib/terms";
 import { BottomNav, DesktopSidebar, MobileMenu } from "@/components/nav";
 import { logoutAction } from "@/app/actions/auth";
-import { APP_NAME, APP_TAGLINE, MANIMA_LOGO_LIGHT_SVG, MANIMA_NAME, MANIMA_URL } from "@/lib/brand";
+import { APP_NAME, APP_TAGLINE, MANIMA_LOGO_SAFFRON, MANIMA_NAME, MANIMA_URL } from "@/lib/brand";
 import { BrandMark } from "@/components/brandmark";
 import { OfflineSync } from "@/components/pwa";
 import { NavLoader } from "@/components/navloader";
@@ -44,12 +44,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   );
 
   const credit = (
-    <a href={MANIMA_URL} target="_blank" rel="noopener noreferrer" className="mt-6 flex items-center gap-2.5 rounded-xl bg-navy-900 px-3 py-2.5 transition hover:bg-navy-800">
+    <a href={MANIMA_URL} target="_blank" rel="noopener noreferrer" className="mt-6 flex items-center gap-2.5 rounded-xl border border-brand-100 bg-brand-50 px-3 py-2.5 transition hover:border-brand-200 hover:bg-brand-100/70">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={MANIMA_LOGO_LIGHT_SVG} alt="" className="h-9 w-12 shrink-0 object-contain drop-shadow-[0_0_6px_rgb(253_177_116/0.45)]" />
+      <img src={MANIMA_LOGO_SAFFRON} alt="" className="h-9 w-12 shrink-0 object-contain" />
       <span className="leading-tight">
-        <span className="block text-[10px] uppercase tracking-[0.18em] text-blue-200/60">Developed by</span>
-        <span className="block text-xs font-semibold text-white/90">{MANIMA_NAME}</span>
+        <span className="block text-[10px] uppercase tracking-[0.18em] text-ink-500">Developed by</span>
+        <span className="block text-xs font-semibold text-ink-900">{MANIMA_NAME}</span>
       </span>
     </a>
   );
