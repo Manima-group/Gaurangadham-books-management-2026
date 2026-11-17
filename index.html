@@ -123,9 +123,9 @@ const APP_URL = "https://books.manima.co.in/"; // where to go after the launch
 const USE_BUILT_IN_DHUN = true;
 const DHUN_FILE = "hare-krishna-dhun.mp3";
 const DHUN_START_AT = 0; // start the recording from this second
-const TOTAL = 10;     // seconds of flowers and music
+let TOTAL = 10;       // seconds of flowers and music (with the dhun: the whole recording)
 const COUNT_FROM = 5; // countdown 5·4·3·2·1 in the last seconds
-const FLOWER_COUNT = 90;
+const FLOWERS_PER_SECOND = 9;
 
 /* ---------- Music, played live by the browser (no recordings) ---------- */
 let ctx, master;
@@ -216,8 +216,7 @@ async function playDhun() {
   if (!dhunOk && dhun.readyState < 3) return false;
   try {
     dhun.currentTime = DHUN_START_AT; dhun.volume = 0;
-    await dhun.play(); fade(dhun, 1, 1200);
-    setTimeout(() => fade(dhun, 0, 1500), (TOTAL + 0.5) * 1000);
+    await dhun.play(); fade(dhun, 1, 600);
     return true;
   } catch (e) { return false; }
 }
@@ -243,16 +242,18 @@ $("launchBtn").addEventListener("click", async () => {
   $("launchBtn").disabled = true;
   const audioOn = startAudio();
   const usingDhun = await playDhun();
+  // With the dhun, the ceremony lasts the whole recording; the countdown is its last seconds.
+  if (usingDhun && isFinite(dhun.duration) && dhun.duration > COUNT_FROM + 3) TOTAL = Math.round((dhun.duration - DHUN_START_AT) * 10) / 10;
   if (audioOn) usingDhun ? playTicksOnly() : playCeremony();
   const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  dropFlowers(reduce ? 24 : FLOWER_COUNT);
+  dropFlowers(Math.round((reduce ? 2.5 : FLOWERS_PER_SECOND) * TOTAL));
   show("bless");
   for (let i = 0; i < COUNT_FROM; i++) setTimeout(() => {
     show("count"); const c = $("count"); c.textContent = COUNT_FROM - i;
     c.style.animation = "none"; void c.offsetWidth; c.style.animation = ""; // restart the zoom for each number
   }, (TOTAL - COUNT_FROM + i) * 1000);
   setTimeout(() => { show("live"); $("byLabel").textContent = "Launched by"; }, TOTAL * 1000);
-  setTimeout(goToApp, (TOTAL + 2) * 1000);
+  setTimeout(goToApp, (TOTAL + 1.5) * 1000);
 });
 </script>
 </body>
