@@ -74,6 +74,16 @@ export async function reservedFor(holder: string, exec: Exec = db, exceptTransfe
 export const isSourceManager = (u: AppUser, t: Transfer) => u.role === "admin" || (u.role === "manager" && u.dhamId === t.fromDhamId);
 export const isDestManager = (u: AppUser, t: Transfer) => u.role === "admin" || (u.role === "manager" && u.dhamId === t.toDhamId);
 
+/**
+ * Checks and approves (all, part, or rejects): the devotee who holds the books — no Sector Sevak
+ * approval needed for devotee-to-devotee — or, for a Dham shelf, its Sector Sevak. The source
+ * Dham's Sector Sevak / a Chakra Sevak can still act if the devotee doesn't respond.
+ */
+export function canApprove(u: AppUser, t: Transfer) {
+  const src = fromHolderOf(t);
+  return isSourceManager(u, t) || (isDevoteeHolder(src) && u.id === holderUserId(src));
+}
+
 /** Prepares and dispatches: the assigned sender, the source devotee, or (Dham shelf without a sender) its Sector Sevak. */
 export function canSend(u: AppUser, t: Transfer) {
   const src = fromHolderOf(t);
@@ -112,7 +122,11 @@ export function visibleWhere(u: AppUser): SQL | undefined {
 
 /** Transfers waiting for this user's action (approve / accept & send / receive / reconcile). */
 export function needsMe(u: AppUser, t: Transfer) {
-  if (t.status === "requested") return isSourceManager(u, t) && u.role !== "admin";
+  if (t.status === "requested") {
+    const src = fromHolderOf(t);
+    // A devotee's own books: the devotee answers; a Dham shelf: its Sector Sevak.
+    return isDevoteeHolder(src) ? u.id === holderUserId(src) : isSourceManager(u, t) && u.role !== "admin";
+  }
   if (t.status === "approved" || t.status === "accepted") return canSend(u, t) && u.role !== "admin";
   if (IN_TRANSIT.includes(t.status as (typeof IN_TRANSIT)[number])) return canReceive(u, t) && u.role !== "admin";
   return false;

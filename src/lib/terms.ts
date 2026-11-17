@@ -60,7 +60,7 @@ export const SIZE_LABEL: Record<string, string> = { big: "Big book", small: "Sma
 export type BookSize = "big" | "small";
 
 export const TRANSFER_STATUS: Record<string, { label: string; tone: Tone; help: string }> = {
-  requested: { label: "Requested", tone: "blue", help: "Waiting for the source Dham's Sector Sevak to check and approve." },
+  requested: { label: "Requested", tone: "blue", help: "Waiting for whoever has the books to check and approve: the devotee for their own books, or the Sector Sevak for a Dham shelf." },
   approved: { label: "Approved", tone: "purple", help: "Approved copies are reserved. Waiting for the sender to accept and send." },
   accepted: { label: "Accepted by sender", tone: "purple", help: "The sender is preparing the books." },
   sent: { label: "Dispatched — on the way", tone: "amber", help: "Books left the sender. The receiver confirms what arrives." },

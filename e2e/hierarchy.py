@@ -22,7 +22,7 @@ def check(name, ok, extra=""):
 def settle(pg):
     pg.wait_for_load_state("networkidle")
     try:
-        pg.locator(".book3d").first.wait_for(state="detached", timeout=15000)
+        pg.locator(".logo3d").first.wait_for(state="detached", timeout=15000)
     except Exception:
         pass
 
