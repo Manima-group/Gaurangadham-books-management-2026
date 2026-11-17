@@ -51,7 +51,7 @@ export function MoneyForm({ today, remaining, userId }: { today: string; remaini
             <input id="remarks" name="remarks" className="field-input" placeholder="e.g. Handed over to Madhava Prabhu" />
           </Field>
           <SubmitButton className="w-full min-h-14 text-lg" pending="Submitting…">Submit Money</SubmitButton>
-          <p className="text-center text-xs text-ink-500">Your Dham Manager will confirm once they receive this money.</p>
+          <p className="text-center text-xs text-ink-500">Your Sector Sevak will confirm once they receive this money.</p>
         </>
       )}
     </ActionForm>

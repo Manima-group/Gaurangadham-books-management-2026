@@ -19,7 +19,7 @@ export async function setupProgress() {
     { key: "drive", title: "Distribution Drive", desc: "A named period of distribution, e.g. Kartik Marathon.", done: drives > 0, count: drives, href: "/drives", action: "Create a Drive" },
     { key: "books", title: "Book list", desc: "Every book you distribute, with a Book Code.", done: books > 0, count: books, href: "/books", action: "Add a Book" },
     { key: "prices", title: "Book prices", desc: "The price devotees will collect for each book.", done: books > 0 && priced >= books, count: priced, href: "/books#prices", action: "Set prices" },
-    { key: "managers", title: "Dham Managers", desc: "One person in charge of each Dham.", done: managers > 0, count: managers, href: "/people?role=manager", action: "Add a Manager" },
+    { key: "managers", title: "Sector Sevaks", desc: "One person in charge of each Dham.", done: managers > 0, count: managers, href: "/people?role=manager", action: "Add a Sector Sevak" },
     { key: "devotees", title: "Devotees", desc: "The people who distribute books.", done: devotees > 0, count: devotees, href: "/people?role=devotee", action: "Add a Devotee" },
   ];
   const done = steps.filter((s) => s.done).length;

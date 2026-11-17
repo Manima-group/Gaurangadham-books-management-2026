@@ -4,7 +4,7 @@ import { maybeCheckpoint } from "@/lib/stock";
 import { and, count, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/session";
 import { db, schema } from "@/db";
-import { NAV } from "@/lib/nav";
+import { navFor } from "@/lib/nav";
 import { ROLE_LABEL } from "@/lib/terms";
 import { BottomNav, MobileMenu, SideNav } from "@/components/nav";
 import { logoutAction } from "@/app/actions/auth";
@@ -15,7 +15,7 @@ import { NavLoader } from "@/components/navloader";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const u = await requireUser();
-  const items = NAV[u.role];
+  const items = navFor(u);
   const [[{ unread }], [org]] = await Promise.all([
     db
       .select({ unread: count() })
@@ -77,7 +77,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <div className="min-w-0">
               <p className="truncate font-display text-[15px] font-bold text-ink-900">Hare Krishna, {u.name.split(" ")[0]} 🙏</p>
               <p className="truncate text-xs font-medium text-ink-500">
-                {ROLE_LABEL[u.role]} · {place}
+                {ROLE_LABEL[u.role]}{u.isCoSevak ? " (Co-Sevak 🛠)" : ""} · {place}
               </p>
             </div>
           </div>

@@ -47,7 +47,7 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
       title={isToday ? "Today's Sales" : `Sales · ${fmtDate(date)}`}
       crumbs={[{ label: "Home", href: "/dashboard" }, { label: "Sales" }]}
       doHere="Add each place you went to, and how many of each book you gave there. Add as many places as you like."
-      next={u.role === "manager" ? "Your own sales are saved and your stock updates at once." : "Your Dham Manager checks it. Money can be handed over any time."}
+      next={u.role === "manager" ? "Your own sales are saved and your stock updates at once." : "Your Sector Sevak checks it. Money can be handed over any time."}
     />
   );
   const otherDay = (
@@ -105,7 +105,7 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
       {header}
       {report?.status === "changes_required" || report?.status === "rejected" ? (
         <div className="mb-4">
-          <Alert tone="amber" title={report.status === "rejected" ? "Your Manager rejected this report" : "Your Manager asked for changes"}>
+          <Alert tone="amber" title={report.status === "rejected" ? "Your Sector Sevak rejected this report" : "Your Sector Sevak asked for changes"}>
             {report.reviewNote ? <>“{report.reviewNote}”. </> : null}Please fix and send again.
           </Alert>
         </div>
@@ -116,7 +116,7 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
       ) : null}
       {usable.length === 0 ? (
         <EmptyState title="You have no books to sell right now.">
-          {books.length === 0 ? "Once your Manager gives you books, they will appear here." : "All your books are sold or waiting for review. Ask your Manager for more books."}
+          {books.length === 0 ? "Once your Sector Sevak gives you books, they will appear here." : "All your books are sold or waiting for review. Ask your Sector Sevak for more books."}
         </EmptyState>
       ) : (
         <SalesForm

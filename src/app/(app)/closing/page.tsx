@@ -36,7 +36,7 @@ export default async function ClosingPage({ searchParams }: { searchParams: Prom
         title={`Daily Closing — ${dhamName}`}
         crumbs={[{ label: "Home", href: "/dashboard" }, { label: "Daily Closing" }]}
         doHere="At the end of the day, check that books and money add up. Any differences are shown — nothing is adjusted automatically."
-        next="Close the day. If there are differences, write a short explanation; the Admin is informed."
+        next="Close the day. If there are differences, write a short explanation; the Chakra Sevak is informed."
       />
       <DayPicker
         action="/closing"
@@ -53,11 +53,12 @@ export default async function ClosingPage({ searchParams }: { searchParams: Prom
         <Card title="📚 Book Summary" subtitle={`${fmtDate(date)} · Dham store + all devotees`}>
           <dl className="divide-y divide-stone-100 text-[15px]">
             <Row k="Opening books" v={num(f.book.opening)} tip="Books in the Dham (store + with devotees) at the start of the day." />
-            <Row k="+ Books received" v={num(f.book.received)} tip="Books that arrived at the Dham or were sent by the Admin." />
+            <Row k="+ Books received" v={num(f.book.received)} tip="Books that arrived at the Dham or were sent by the Chakra Sevak." />
             <Row k="Books assigned to devotees" v={num(f.book.assigned)} muted tip="Moved from the Dham store to devotees. This does not change the Dham total." />
             <Row k="− Books sold" v={num(f.book.sold)} tip="From approved reports only." />
             <Row k="Books returned to Dham" v={num(f.book.returned)} muted tip="Moved from devotees back to the store. Does not change the Dham total." />
             <Row k="− Damaged / lost books" v={num(f.book.damaged)} />
+            {f.book.transferredOut > 0 && <Row k="− Sent to other Dhams" v={num(f.book.transferredOut)} />}
             <Row k="= Closing books" v={num(f.book.closing)} strong />
           </dl>
           {f.book.pendingSold > 0 && <p className="mt-2 text-sm text-sky-800">{num(f.book.pendingSold)} more books are in reports still being reviewed.</p>}

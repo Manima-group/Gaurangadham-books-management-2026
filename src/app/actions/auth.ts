@@ -31,11 +31,11 @@ export async function loginAction(_: ActionState, fd: FormData): Promise<ActionS
 
   const wrong = fail(
     "The mobile number / email or password is not correct.",
-    "Please check and try again. If you have forgotten your password, ask your Dham Manager or Admin to reset it.",
+    "Please check and try again. If you have forgotten your password, ask your Sector Sevak or Chakra Sevak to reset it.",
   );
   if (!u) return wrong;
   if (!u.isActive)
-    return fail("Your account is marked as inactive.", "Please contact your Dham Manager or Admin to activate it again.");
+    return fail("Your account is marked as inactive.", "Please contact your Sector Sevak or Chakra Sevak to activate it again.");
 
   try {
     await auth.api.signInEmail({ body: { email: u.email, password: parsed.data.password }, headers: await headers() });

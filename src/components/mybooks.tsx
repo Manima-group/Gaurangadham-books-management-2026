@@ -1,24 +1,65 @@
+import Link from "next/link";
 import type { DevoteeBook } from "@/lib/devotee";
 import { inr, num } from "@/lib/format";
 import { BookCover } from "./ui";
 
-/** Three big numbers: books given, sold, left. */
-export function BookTotals({ books }: { books: DevoteeBook[] }) {
-  const given = books.reduce((a, b) => a + b.given - b.returned, 0);
-  const sold = books.reduce((a, b) => a + b.sold + b.pendingSold, 0);
-  const left = books.reduce((a, b) => a + Math.max(b.available, 0), 0);
-  const tile = (label: string, value: number, cls: string) => (
-    <div className={`rounded-2xl p-3 text-center ${cls}`}>
-      <p className="font-display text-3xl font-extrabold tabular-nums">{num(value)}</p>
-      <p className="text-xs font-semibold opacity-80">{label}</p>
-    </div>
+export type TotalKey = "given" | "sold" | "left";
+const qtyOf: Record<TotalKey, (b: DevoteeBook) => number> = {
+  given: (b) => b.given - b.returned,
+  sold: (b) => b.sold + b.pendingSold,
+  left: (b) => Math.max(b.available, 0),
+};
+
+/** Three big numbers: books given, sold, left. Each tile opens the book-by-book list for that number. */
+export function BookTotals({ books, active }: { books: DevoteeBook[]; active?: TotalKey }) {
+  const sum = (k: TotalKey) => books.reduce((a, b) => a + qtyOf[k](b), 0);
+  const tile = (k: TotalKey, label: string, cls: string) => (
+    <Link
+      href={active === k ? "/my/books" : `/my/books?show=${k}#detail`}
+      scroll={false}
+      aria-current={active === k ? "true" : undefined}
+      className={`block rounded-2xl p-3 text-center transition hover:-translate-y-0.5 hover:shadow-card ${cls} ${active === k ? "ring-2 ring-brand-500" : ""}`}
+      data-testid={`total-${k}`}
+    >
+      <p className="font-display text-3xl font-extrabold tabular-nums">{num(sum(k))}</p>
+      <p className="text-xs font-semibold opacity-80">{label} ›</p>
+    </Link>
   );
   return (
     <div className="grid grid-cols-3 gap-2">
-      {tile("Given to me", given, "bg-white text-ink-900 ring-1 ring-stone-200")}
-      {tile("Sold", sold, "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200")}
-      {tile("Left", left, "bg-brand-50 text-brand-800 ring-1 ring-brand-200")}
+      {tile("given", "Given to me", "bg-white text-ink-900 ring-1 ring-stone-200")}
+      {tile("sold", "Sold", "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200")}
+      {tile("left", "Left", "bg-brand-50 text-brand-800 ring-1 ring-brand-200")}
     </div>
+  );
+}
+
+/** Book name and quantity for one of the three totals. */
+export function TotalDetail({ books, show }: { books: DevoteeBook[]; show: TotalKey }) {
+  const title = { given: "Books given to me", sold: "Books I sold", left: "Books left with me" }[show];
+  const rows = books.map((b) => ({ b, q: qtyOf[show](b) })).filter((r) => r.q > 0).sort((a, z) => z.q - a.q);
+  return (
+    <section id="detail" className="rounded-3xl bg-white p-4 shadow-card ring-1 ring-stone-200/70" data-testid="total-detail">
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="font-display text-lg font-bold text-ink-900">{title}</h2>
+        <Link href="/my/books" scroll={false} className="text-sm font-semibold text-brand-700">Close ✕</Link>
+      </div>
+      {rows.length === 0 ? (
+        <p className="text-sm text-ink-500">None.</p>
+      ) : (
+        <ul className="divide-y divide-stone-100">
+          {rows.map(({ b, q }) => (
+            <li key={b.id} className="flex items-center justify-between gap-3 py-2">
+              <span><span className="font-semibold text-ink-900">{b.title}</span> <span className="text-sm text-ink-500">· {b.language}</span></span>
+              <span className="font-display text-lg font-bold tabular-nums">{num(q)}</span>
+            </li>
+          ))}
+          <li className="flex items-center justify-between py-2 text-sm font-semibold text-ink-700">
+            <span>Total</span><span className="tabular-nums">{num(rows.reduce((a, r) => a + r.q, 0))}</span>
+          </li>
+        </ul>
+      )}
+    </section>
   );
 }
 

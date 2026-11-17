@@ -15,7 +15,7 @@ export default async function MyReports() {
       <PageHeader
         title="My Reports"
         crumbs={[{ label: "Home", href: "/dashboard" }, { label: "My Reports" }]}
-        doHere="See every daily report you have sent and whether your Manager approved it."
+        doHere="See every daily report you have sent and whether your Sector Sevak approved it."
         next="If a report shows “Changes Required”, tap it to correct and send it again."
       />
       {rows.length === 0 ? (
@@ -32,7 +32,7 @@ export default async function MyReports() {
                   <ReportStatus status={r.status} />
                 </div>
                 <p className="mt-1 text-sm text-ink-500">{num(r.totalSold)} books sold · {inr(r.salesPaise)} · collected {inr(r.collectedPaise)}</p>
-                {r.reviewNote && <p className="mt-1 text-sm text-amber-800">Manager's note: “{r.reviewNote}”</p>}
+                {r.reviewNote && <p className="mt-1 text-sm text-amber-800">Sector Sevak's note: “{r.reviewNote}”</p>}
               </Link>
               {(r.status !== "approved" || u.role === "manager") && (
                 <div className="flex justify-end">

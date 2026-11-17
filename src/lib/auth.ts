@@ -16,7 +16,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 6,
-    disableSignUp: true, // accounts are created by Admin only
+    disableSignUp: true, // accounts are created by Chakra Sevak only
   },
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days — devotees should rarely need to log in again

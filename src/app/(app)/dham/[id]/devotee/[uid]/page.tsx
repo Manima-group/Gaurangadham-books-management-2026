@@ -18,8 +18,8 @@ export default async function DevoteeDetail({ params, searchParams }: { params: 
   const list = sp.ret && /^[\w=&%.+-]*$/.test(sp.ret) ? `/dham/${id}?${sp.ret}` : `/dham/${id}`;
   const crumbs =
     u.role === "admin"
-      ? [{ label: "Global Admin", href: "/dashboard" }, { label: "Dhams", href: "/dham" }, { label: dham.name, href: `/dham/${id}` }, { label: "Devotees", href: list }, { label: devotee.name }]
-      : [{ label: "Dham Manager", href: "/dashboard" }, { label: "My Dham", href: `/dham/${id}` }, { label: "Devotees", href: list }, { label: devotee.name }];
+      ? [{ label: "Chakra Sevak", href: "/dashboard" }, { label: "Dhams", href: "/dham" }, { label: dham.name, href: `/dham/${id}` }, { label: "Devotees", href: list }, { label: devotee.name }]
+      : [{ label: "Sector Sevak", href: "/dashboard" }, { label: "My Dham", href: `/dham/${id}` }, { label: "Devotees", href: list }, { label: devotee.name }];
   return (
     <DevoteeProfile
       devotee={devotee}

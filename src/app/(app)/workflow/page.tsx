@@ -53,25 +53,25 @@ export default async function WorkflowPage() {
 
   const stages: Stage[] = [
     {
-      title: "Admin Setup", icon: "✅", who: "Global Admin",
+      title: "Chakra Sevak Setup", icon: "✅", who: "Chakra Sevak",
       status: setup.complete ? DONE : setup.done ? { label: `${setup.done} of ${setup.total} done`, tone: "amber" } : NOT_STARTED,
       pending: next ? `Add ${next.title.toLowerCase()}` : "Nothing pending",
       last: null, related: `${setup.done} of ${setup.total} setup steps complete`, href: "/setup",
     },
     {
-      title: "Books Received", icon: "📥", who: u.role === "admin" ? "Global Admin / Dham Manager" : "Dham Manager",
+      title: "Books Received", icon: "📥", who: u.role === "admin" ? "Chakra Sevak / Sector Sevak" : "Sector Sevak",
       status: rec.n ? DONE : NOT_STARTED,
       pending: rec.n ? "Record new books whenever they arrive" : "Receive the first books",
       last: rec.d, related: `${num(rec.n)} books received in total`, href: "/stock/history?kind=received",
     },
     {
-      title: "Books Assigned to Dham", icon: "🛕", who: "Global Admin",
+      title: "Books Assigned to Dham", icon: "🛕", who: "Chakra Sevak",
       status: dhamId ? (toDham.n ? DONE : NOT_STARTED) : total(central) > 0 ? ACTION : toDham.n ? DONE : NOT_STARTED,
-      pending: dhamId ? "Admin sends books from the Central Store" : total(central) > 0 ? `${num(total(central))} books in the Central Store not yet sent to a Dham` : "Nothing pending",
+      pending: dhamId ? "Chakra Sevak sends books from the Central Store" : total(central) > 0 ? `${num(total(central))} books in the Central Store not yet sent to a Dham` : "Nothing pending",
       last: toDham.d, related: `${num(toDham.n)} books sent to Dhams`, href: "/stock/history?kind=assign_dham",
     },
     {
-      title: "Books Assigned to Devotees", icon: "🤲", who: "Dham Manager",
+      title: "Books Assigned to Devotees", icon: "🤲", who: "Sector Sevak",
       status: dhamId && total(store) > 0 ? { label: "Books waiting in store", tone: "blue" } : toDev.n ? DONE : NOT_STARTED,
       pending: dhamId && total(store) > 0 ? `${num(total(store))} books in the Dham store can be given to devotees` : "Give books to devotees as needed",
       last: toDev.d, related: `${num(toDev.n)} books given to devotees`, href: u.role === "manager" ? "/stock/assign-devotees" : "/stock/history?kind=assign_devotee",
@@ -89,25 +89,25 @@ export default async function WorkflowPage() {
       last: rep.d, related: `${inr(money.collected)} collected in total`, href: "/money",
     },
     {
-      title: "Money Submitted", icon: "🏦", who: "Devotees → Dham Manager",
+      title: "Money Submitted", icon: "🏦", who: "Devotees → Sector Sevak",
       status: money.pendingMoney > 0 ? ACTION : money.submitted ? DONE : NOT_STARTED,
       pending: money.pendingMoney > 0 ? `${inr(money.pendingMoney)} yet to submit${money.unconfirmedSubmissions ? ` · ${money.unconfirmedSubmissions} to confirm` : ""}` : "All collected money submitted",
       last: sub.d, related: `${inr(money.submitted)} submitted`, href: "/money",
     },
     {
-      title: "Manager Review", icon: "🔍", who: "Dham Manager",
+      title: "Sector Sevak Review", icon: "🔍", who: "Sector Sevak",
       status: money.reportsAwaiting ? ACTION : rev.d ? DONE : NOT_STARTED,
       pending: money.reportsAwaiting ? `${money.reportsAwaiting} report(s) waiting for review` : "No reports waiting",
       last: rev.d, related: `${money.reportsNeedChanges} sent back for correction`, href: "/reports?status=submitted",
     },
     {
-      title: "Admin Monitoring", icon: "📊", who: "Global Admin",
+      title: "Chakra Sevak Monitoring", icon: "📊", who: "Chakra Sevak",
       status: { label: "Ongoing", tone: "blue" },
       pending: "Check the overview daily for Dhams needing attention",
       last: today, related: "Sales, stock and money across all Dhams", href: u.role === "admin" ? "/monitor" : "/dashboard",
     },
     {
-      title: "Daily Closing", icon: "🔒", who: "Dham Manager / Admin",
+      title: "Daily Closing", icon: "🔒", who: "Sector Sevak / Chakra Sevak",
       status: close.today >= close.dhams && close.dhams > 0 ? DONE : ACTION,
       pending: close.today >= close.dhams && close.dhams > 0 ? "Today is closed" : `${Math.max(close.dhams - close.today, 0)} Dham(s) not yet closed for today`,
       last: close.d, related: "Book and money summary for each day", href: "/closing",

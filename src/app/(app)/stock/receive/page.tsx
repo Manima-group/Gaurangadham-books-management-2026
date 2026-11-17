@@ -18,7 +18,7 @@ export default async function ReceivePage() {
       <Card className="max-w-xl">
         {books.length === 0 ? (
           <EmptyState title="No books in the book list yet." action={u.role === "admin" ? <LinkButton href="/books">Add a Book</LinkButton> : undefined}>
-            {u.role === "admin" ? "Add the book first, then come back to receive copies." : "Ask the Admin to add the book to the book list first."}
+            {u.role === "admin" ? "Add the book first, then come back to receive copies." : "Ask the Chakra Sevak to add the book to the book list first."}
           </EmptyState>
         ) : (
           <ReceiveForm

@@ -46,8 +46,8 @@ export async function addDham(_: ActionState, fd: FormData): Promise<ActionState
   const [d] = await db.insert(schema.dham).values(p.data).returning();
   await logActivity(u.id, `${u.name} added the Dham "${d.name}"`, { dhamId: d.id, entity: "dham", entityId: d.id });
   revalidatePath("/dhams");
-  return ok(`"${d.name}" has been added.`, "You can now add a Dham Manager for it and send books to it.", {
-    label: "Add a Manager for this Dham",
+  return ok(`"${d.name}" has been added.`, "You can now add a Sector Sevak for it and send books to it.", {
+    label: "Add a Sector Sevak for this Dham",
     href: "/people?role=manager",
   });
 }
@@ -177,6 +177,12 @@ export async function updatePrices(_: ActionState, fd: FormData): Promise<Action
 
 /* ---------------- People ---------------- */
 
+/** A Sector Sevak may look after the devotees of their own Dham and the Co-Sevaks they work with. */
+function managerMayManage(u: { role: string; id: string; dhamId: number | null }, p: { id: string; role: string; dhamId: number | null; isCoSevak: boolean }) {
+  if (u.role !== "manager") return true;
+  return p.dhamId === u.dhamId && p.id !== u.id && (p.role === "devotee" || (p.role === "manager" && p.isCoSevak));
+}
+
 const PersonSchema = z
   .object({
     name: s(2, "Please enter the full name."),
@@ -202,7 +208,7 @@ export async function addPerson(_: ActionState, fd: FormData): Promise<ActionSta
   const u = await requireUser("admin", "manager");
   const raw = Object.fromEntries(fd);
   if (u.role === "manager") {
-    raw.role = "devotee";
+    raw.role = raw.role === "manager" ? "manager" : "devotee"; // a Sector Sevak may add devotees or a Co-Sevak
     raw.dhamId = String(u.dhamId);
   }
   const p = PersonSchema.safeParse(raw);
@@ -226,6 +232,10 @@ export async function addPerson(_: ActionState, fd: FormData): Promise<ActionSta
         role: d.role,
         phone: d.phone,
         dhamId: d.role === "admin" ? null : d.dhamId!,
+        // A Chakra Sevak added by a Chakra Sevak, or a Sector Sevak added by a Sector Sevak, helps maintain the app.
+        isCoSevak: d.role === "admin" || (d.role === "manager" && (u.role === "manager" || fd.get("coSevak") === "on")),
+        addedBy: u.id,
+        canSeeAvailability: u.role === "admin" && d.role !== "admin" && fd.get("canSeeAvailability") === "on",
       });
       await tx.insert(schema.account).values({ id: randomUUID(), accountId: id, providerId: "credential", userId: id, password });
     });
@@ -234,7 +244,8 @@ export async function addPerson(_: ActionState, fd: FormData): Promise<ActionSta
       return fail("This mobile number or email is already registered.", "Someone may have just added this person.", { phone: "Already registered" });
     throw e;
   }
-  const roleWord = d.role === "manager" ? "Dham Manager" : d.role === "admin" ? "Admin" : "Devotee";
+  const coSevak = d.role === "admin" || (d.role === "manager" && (u.role === "manager" || fd.get("coSevak") === "on"));
+  const roleWord = (d.role === "manager" ? "Sector Sevak" : d.role === "admin" ? "Chakra Sevak" : "Devotee") + (coSevak ? " (Co-Sevak)" : "");
   await logActivity(u.id, `${u.name} added ${d.name} as ${roleWord}`, { dhamId: d.dhamId ?? null, entity: "user", entityId: id });
   await notify([id], `Welcome to ${APP_NAME} 🙏`, "Your account is ready. Take the short tour to get started.", "/welcome");
   revalidatePath("/people");
@@ -250,7 +261,7 @@ export async function togglePerson(fd: FormData) {
   const id = String(fd.get("id"));
   const [p] = await db.select().from(schema.user).where(eq(schema.user.id, id));
   if (!p || p.id === u.id) return;
-  if (u.role === "manager" && (p.dhamId !== u.dhamId || p.role !== "devotee")) return;
+  if (!managerMayManage(u, p)) return;
   await db.update(schema.user).set({ isActive: !p.isActive }).where(eq(schema.user.id, id));
   if (p.isActive) await db.delete(schema.session).where(eq(schema.session.userId, id));
   await logActivity(u.id, `${u.name} marked ${p.name} as ${p.isActive ? "inactive" : "active"}`, { dhamId: p.dhamId });
@@ -265,8 +276,7 @@ export async function resetPassword(_: ActionState, fd: FormData): Promise<Actio
   if (!p.success) return fromZod(p.error);
   const [target] = await db.select().from(schema.user).where(eq(schema.user.id, p.data.id));
   if (!target) return fail("Person not found.");
-  if (u.role === "manager" && (target.dhamId !== u.dhamId || target.role !== "devotee"))
-    return fail("You can only reset passwords for devotees of your own Dham.");
+  if (!managerMayManage(u, target)) return fail("You can only reset passwords for devotees and Co-Sevaks of your own Dham.");
   await db
     .update(schema.account)
     .set({ password: await hashPassword(p.data.password) })
@@ -361,7 +371,7 @@ export async function deletePerson(_: ActionState, fd: FormData): Promise<Action
   const [p] = await db.select().from(schema.user).where(eq(schema.user.id, id));
   if (!p) return fail("This person was already deleted.");
   if (p.id === u.id) return fail("You can't delete your own account.");
-  if (u.role === "manager" && (p.dhamId !== u.dhamId || p.role !== "devotee")) return fail("You can only delete devotees of your own Dham.");
+  if (!managerMayManage(u, p)) return fail("You can only delete devotees and Co-Sevaks of your own Dham.");
   const used =
     (await cnt(sql`select count(*)::int n from daily_report where devotee_id = ${id}`)) +
     (await cnt(sql`select count(*)::int n from stock_movement where devotee_id = ${id} or created_by = ${id}`)) +
@@ -400,7 +410,7 @@ export async function updatePerson(_: ActionState, fd: FormData): Promise<Action
   const d = p.data;
   const [cur] = await db.select().from(schema.user).where(eq(schema.user.id, d.id));
   if (!cur) return fail("Person not found.");
-  if (u.role === "manager" && (cur.dhamId !== u.dhamId || cur.role !== "devotee")) return fail("You can only edit devotees of your own Dham.");
+  if (!managerMayManage(u, cur)) return fail("You can only edit devotees and Co-Sevaks of your own Dham.");
   const [dup] = await db.select().from(schema.user).where(and(eq(schema.user.phone, d.phone), ne(schema.user.id, d.id)));
   if (dup) return fail("This mobile number belongs to someone else.", `It is ${dup.name}'s number.`, { phone: "Already registered" });
   const email = d.email ?? (cur.email.endsWith("@users.gaurangadham.local") ? `m${d.phone}@users.gaurangadham.local` : cur.email);
@@ -465,4 +475,27 @@ export async function clearNotifications(_: ActionState): Promise<ActionState> {
   await db.delete(schema.notification).where(eq(schema.notification.userId, u.id));
   revalidatePath("/", "layout");
   return ok("All notifications cleared.");
+}
+
+
+/** Chakra Sevak only: let a Sector Sevak or devotee see Book Availability across all Dhams. */
+export async function toggleAvailability(fd: FormData) {
+  const u = await requireUser("admin");
+  const id = String(fd.get("id"));
+  const [p] = await db.select().from(schema.user).where(eq(schema.user.id, id));
+  if (!p || p.role === "admin") return;
+  await db.update(schema.user).set({ canSeeAvailability: !p.canSeeAvailability }).where(eq(schema.user.id, id));
+  await logActivity(u.id, `${u.name} ${p.canSeeAvailability ? "removed" : "gave"} Book Availability access ${p.canSeeAvailability ? "from" : "to"} ${p.name}`, { dhamId: p.dhamId, entity: "user", entityId: id });
+  revalidatePath("/people");
+}
+
+/** Chakra Sevak only: give or remove Book Availability access for everyone in a role at once. */
+export async function setAvailabilityForRole(fd: FormData) {
+  const u = await requireUser("admin");
+  const role = String(fd.get("role"));
+  if (role !== "manager" && role !== "devotee") return;
+  const on = fd.get("on") === "1";
+  await db.update(schema.user).set({ canSeeAvailability: on }).where(eq(schema.user.role, role));
+  await logActivity(u.id, `${u.name} ${on ? "gave" : "removed"} Book Availability access ${on ? "to" : "from"} all ${role === "manager" ? "Sector Sevaks" : "devotees"}`);
+  revalidatePath("/people");
 }

@@ -85,8 +85,8 @@ export async function submitMoney(_: ActionState, fd: FormData): Promise<ActionS
   return ok(
     `${inr(amountPaise)} submitted. Thank you! 🙏`,
     left > 0
-      ? `You still have ${inr(left)} to submit. Your Dham Manager will confirm once they receive this money.`
-      : "You have submitted all the money you collected. Your Dham Manager will confirm once they receive it.",
+      ? `You still have ${inr(left)} to submit. Your Sector Sevak will confirm once they receive this money.`
+      : "You have submitted all the money you collected. Your Sector Sevak will confirm once they receive it.",
   );
 }
 
@@ -121,7 +121,7 @@ export async function confirmMoney(_: ActionState, fd: FormData): Promise<Action
   await notify(
     [row.devoteeId],
     decision === "received"
-      ? `Your Manager received ${inr(row.amountPaise)} ✅`
+      ? `Your Sector Sevak received ${inr(row.amountPaise)} ✅`
       : `Your money entry of ${inr(row.amountPaise)} needs checking`,
     decision === "received" ? `Submitted on ${fmtDate(row.submissionDate)}` : note,
     "/my/money",
@@ -147,7 +147,7 @@ export async function deleteMoney(_: ActionState, fd: FormData): Promise<ActionS
   const canManage = u.role === "admin" || (u.role === "manager" && row.dhamId === u.dhamId);
   if (!own && !canManage) return fail("You can't delete this entry.");
   if (own && !canManage && row.status === "received")
-    return fail("Your Manager already confirmed receiving this money.", "Ask your Dham Manager if it needs to be removed.");
+    return fail("Your Sector Sevak already confirmed receiving this money.", "Ask your Sector Sevak if it needs to be removed.");
   await db.delete(schema.moneySubmission).where(eq(schema.moneySubmission.id, id));
   await logActivity(u.id, `${u.name} deleted a money entry of ${inr(row.amountPaise)} (${fmtDate(row.submissionDate)})`, { dhamId: row.dhamId });
   revalidatePath("/money");

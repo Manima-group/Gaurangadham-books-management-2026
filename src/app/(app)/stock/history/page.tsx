@@ -38,10 +38,10 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
   const dhamName = new Map(dhams.map((d) => [d.id, d.name]));
   const holder = (h: string) =>
     h === "central" ? "Central Store" : h === "external" ? "Supplier" : h === "sold" ? "Sold to public" : h === "damaged" ? "Damaged / lost" :
-    h.startsWith("dham:") ? `${dhamName.get(Number(h.slice(5))) ?? "Dham"} store` : h.startsWith("devotee:") ? name.get(h.slice(8)) ?? "Devotee" : h;
+    h.startsWith("dham:") ? `${dhamName.get(Number(h.slice(5))) ?? "Dham"} store` : h.startsWith("devotee:") ? name.get(h.slice(8)) ?? "Devotee" : h.startsWith("transit:") ? `On the way (transfer #${h.slice(8)})` : h;
   const more = rows.length > PAGE;
   const canUndo = (r: (typeof rows)[number]) =>
-    !r.reversedBy && r.kind !== "correction" && !r.reportId && (u.role === "admin" || (r.dhamId === u.dhamId && r.kind !== "assign_dham"));
+    !r.reversedBy && r.kind !== "correction" && r.kind !== "transfer_out" && r.kind !== "transfer_in" && !r.reportId && (u.role === "admin" || (r.dhamId === u.dhamId && r.kind !== "assign_dham"));
   const qs = (p: number) => "?" + new URLSearchParams({ ...Object.fromEntries(Object.entries(sp).filter(([, v]) => v)) as Record<string, string>, page: String(p) }).toString();
 
   return (

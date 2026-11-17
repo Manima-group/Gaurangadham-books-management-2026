@@ -1,10 +1,12 @@
 /* Gaurangadham Grantha Seva — service worker
  * - App files (JS, CSS, fonts, images) are cached so the app opens without network.
- * - Pages: network first (4s), falling back to the last saved copy, then /offline.
+ * - Pages: network first. Only when the phone is offline, or the request really fails,
+ *   the last saved copy (or /offline) is shown — a slow server is waited for, never
+ *   mistaken for "offline".
  * - Never caches: server actions (POST), API calls, Next.js data requests.
  * Sales and money entered offline are queued by the page itself and sent when back online.
  */
-const VERSION = "v2";
+const VERSION = "v3";
 const STATIC = `gb-static-${VERSION}`;
 const PAGES = `gb-pages-${VERSION}`;
 const OFFLINE_URL = "/offline";
@@ -76,7 +78,10 @@ self.addEventListener("fetch", (event) => {
       (async () => {
         const cache = await caches.open(PAGES);
         try {
-          const res = await Promise.race([fetch(req), timeout(4000)]);
+          // Offline: answer from the saved copy at once. Online: wait for the server
+          // (a sleeping database can take a few seconds to wake up), up to 30 s.
+          if (self.navigator && self.navigator.onLine === false) throw new Error("offline");
+          const res = await Promise.race([fetch(req), timeout(30000)]);
           if (res.ok && !res.redirected && url.pathname !== "/login") {
             cache.put(url.pathname, res.clone());
             res.clone().text().then(saveAssets).catch(() => {});

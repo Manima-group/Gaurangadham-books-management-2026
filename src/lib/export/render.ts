@@ -206,6 +206,8 @@ export async function toPdf(spec: ReportSpec): Promise<Buffer> {
   const range = doc.bufferedPageRange();
   for (let i = range.start; i < range.start + range.count; i++) {
     doc.switchToPage(i);
+    // The footer sits inside the bottom margin; without this pdfkit starts a new, empty page for it.
+    doc.page.margins.bottom = 0;
     doc.font("R").fontSize(8).fillColor("#8792ab").text(`${APP_NAME} · ${spec.title} · Page ${i + 1} of ${range.count}`, 36, doc.page.height - 30, { width: W, align: "center", lineBreak: false });
   }
   doc.end();

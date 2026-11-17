@@ -34,7 +34,7 @@ export async function DevoteeDashboard({ user }: { user: AppUser }) {
       {/* 1. Today — one clear action */}
       {needsFix ? (
         <Link href={`/my/sales?date=${today}`} className="block rounded-3xl bg-amber-50 p-5 ring-1 ring-amber-200">
-          <p className="font-display text-lg font-bold text-amber-900">✏️ Your Manager asked for a change</p>
+          <p className="font-display text-lg font-bold text-amber-900">✏️ Your Sector Sevak asked for a change</p>
           {todayReport.reviewNote && <p className="mt-1 text-amber-900">“{todayReport.reviewNote}”</p>}
           <span className="btn-warn mt-3 w-full">Fix today's sales</span>
         </Link>
@@ -60,7 +60,7 @@ export async function DevoteeDashboard({ user }: { user: AppUser }) {
       )}
 
       {books.length === 0 ? (
-        <EmptyState title="You haven't received any books yet.">Once your Manager gives you books, they will appear here.</EmptyState>
+        <EmptyState title="You haven't received any books yet.">Once your Sector Sevak gives you books, they will appear here.</EmptyState>
       ) : (
         <>
           {/* 2. My books at a glance */}
@@ -102,7 +102,7 @@ export async function DevoteeDashboard({ user }: { user: AppUser }) {
           )}
         </>
       )}
-      {!user.dhamId && <Alert tone="amber" title="You are not linked to a Dham yet.">Please contact your Admin.</Alert>}
+      {!user.dhamId && <Alert tone="amber" title="You are not linked to a Dham yet.">Please contact your Chakra Sevak.</Alert>}
     </div>
   );
 }

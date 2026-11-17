@@ -68,13 +68,13 @@ export default async function DhamDistribution({
       </div>
       <div className="mb-4"><DownloadReport kind="distribution" params={{ period, size, dham: String(id) }} /></div>
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label={`${size === "big" ? "Big books" : size === "small" ? "Small books" : "Books"} · ${PERIOD_LABEL[period]}`} value={num(tot.big + tot.small)} tone="green" />
+        <StatCard label={`${size === "big" ? "Big books" : size === "small" ? "Small books" : "Books"} · ${PERIOD_LABEL[period]}`} value={num(tot.big + tot.small)} tone="green" href="#books" hint="Tap: book names & counts" />
         <StatCard label="📕 Big books" value={num(split.big)} tone="purple" href={q({ size: "big" })} />
         <StatCard label="📗 Small books" value={num(split.small)} tone="blue" href={q({ size: "small" })} />
-        <StatCard label="Devotees distributed" value={`${active.length} of ${people.length}`} hint={inr(tot.amt)} />
+        <StatCard label="Devotees distributed" value={`${active.length} of ${people.length}`} hint={inr(tot.amt)} href="#devotees" />
       </div>
 
-      <Card title={`Devotees · ${PERIOD_LABEL[period]}`} subtitle={`Ranked by ${what} distributed`}>
+      <Card id="devotees" title={`Devotees · ${PERIOD_LABEL[period]}`} subtitle={`Ranked by ${what} distributed`}>
         {active.length === 0 ? (
           <EmptyState icon="🙏" title={`No ${what} distributed ${period === "today" ? "today" : "in this period"} yet.`}>
             Numbers appear here as devotees send their daily sales reports.
@@ -128,7 +128,7 @@ export default async function DhamDistribution({
         )}
       </Card>
 
-      <Card title="Which books?" subtitle={`${dham.name} · ${PERIOD_LABEL[period]}`} className="mt-4">
+      <Card id="books" title="Which books?" subtitle={`${dham.name} · ${PERIOD_LABEL[period]}`} className="mt-4">
         {books.length === 0 ? (
           <p className="text-sm text-ink-500">No books distributed in this period yet.</p>
         ) : (

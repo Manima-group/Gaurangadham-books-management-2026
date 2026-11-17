@@ -48,7 +48,7 @@ export async function closeDay(_: ActionState, fd: FormData): Promise<ActionStat
   revalidatePath("/closing");
   return ok(
     `${fmtDate(date)} has been closed for ${dh?.name}.`,
-    hasWarn ? "Your explanation has been saved and the Admin has been informed about the differences." : "All figures were in order.",
+    hasWarn ? "Your explanation has been saved and the Chakra Sevak has been informed about the differences." : "All figures were in order.",
   );
 }
 

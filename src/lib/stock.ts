@@ -43,6 +43,20 @@ export async function holderStock(holder: Holder, exec: Exec = db): Promise<Map<
   return new Map(r.filter((x) => Number(x.qty) !== 0).map((x) => [Number(x.book_id), Number(x.qty)]));
 }
 
+/** Every copy held on a Dham shelf, by a devotee, or on the way between Dhams (non-zero balances). */
+export async function allHoldings(exec: Exec = db) {
+  const r = await rows<{ holder: string; dham_id: number | null; book_id: number; qty: number }>(
+    sql`with ${DELTAS}
+      select h as holder,
+        case when h like 'dham:%' then substring(h from 6)::int else min(dham_id) filter (where delta > 0) end as dham_id,
+        book_id, sum(delta)::int as qty from d
+      where h like 'dham:%' or h like 'devotee:%' or h like 'transit:%'
+      group by h, book_id having sum(delta) <> 0`,
+    exec,
+  );
+  return r.map((x) => ({ holder: x.holder, dhamId: x.dham_id == null ? null : Number(x.dham_id), bookId: Number(x.book_id), qty: Number(x.qty) }));
+}
+
 /** Stock with every devotee of a Dham, per devotee per book. */
 export async function devoteeStocksForDham(dhamId: number) {
   const r = await rows<{ holder: string; book_id: number; qty: number }>(sql`
@@ -68,7 +82,7 @@ export async function devoteeStocksForDham(dhamId: number) {
 export async function scopeStock(dhamId: number | null, beforeDate?: string) {
   const inside =
     dhamId == null
-      ? sql`(h like 'dham:%' or h like 'devotee:%' or h = 'central')`
+      ? sql`(h like 'dham:%' or h like 'devotee:%' or h like 'transit:%' or h = 'central')`
       : sql`(h like 'dham:%' or h like 'devotee:%')`;
   const dhamCond = dhamId == null ? sql`true` : sql`dham_id = ${dhamId}`;
 
@@ -135,10 +149,12 @@ export async function movementTotals(f: {
     sold: 0,
     returned: 0,
     damaged: 0,
+    transfer_in: 0,
+    transfer_out: 0,
   };
   for (const x of r) out[x.kind] = Number(x.qty);
-  // For one Dham, "received" means: arrived directly at the Dham + sent from the central store.
-  if (f.dhamId != null) out.received = out.received + out.assign_dham;
+  // For one Dham, "received" means: arrived directly at the Dham + sent from the central store + from other Dhams.
+  if (f.dhamId != null) out.received = out.received + out.assign_dham + out.transfer_in;
   return out;
 }
 

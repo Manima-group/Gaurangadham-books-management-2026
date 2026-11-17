@@ -18,7 +18,7 @@ const BUILDERS = {
 export async function GET(req: NextRequest, { params }: { params: Promise<{ kind: string }> }) {
   const u = await getUser();
   if (!u) return NextResponse.json({ error: "Please log in again." }, { status: 401 });
-  if (u.role === "devotee") return NextResponse.json({ error: "Reports are available to Managers and Admins." }, { status: 403 });
+  if (u.role === "devotee") return NextResponse.json({ error: "Reports are available to Sector Sevaks and Chakra Sevaks." }, { status: 403 });
   const { kind } = await params;
   const build = BUILDERS[kind as keyof typeof BUILDERS];
   if (!build) return NextResponse.json({ error: "Unknown report." }, { status: 404 });

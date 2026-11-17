@@ -49,13 +49,13 @@ export default async function DistributionPage({ searchParams }: { searchParams:
       </div>
       <div className="mb-4"><DownloadReport kind="distribution" params={{ period, size }} /></div>
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label={`Books distributed · ${PERIOD_LABEL[period]}`} value={num(size === "big" ? tot.big : size === "small" ? tot.small : tot.big + tot.small)} tone="green" />
+        <StatCard label={`Books distributed · ${PERIOD_LABEL[period]}`} value={num(size === "big" ? tot.big : size === "small" ? tot.small : tot.big + tot.small)} tone="green" href="#books" hint="Tap: book names & counts" />
         <StatCard label="📕 Big books" value={num(tot.big)} tone="purple" href={q({ size: "big" })} />
         <StatCard label="📗 Small books" value={num(tot.small)} tone="blue" href={q({ size: "small" })} />
-        <StatCard label="Value" value={inr(tot.amt)} hint={`${tot.people} devotees distributed`} />
+        <StatCard label="Value" value={inr(tot.amt)} hint={`${tot.people} devotees distributed`} href="#dhams" />
       </div>
 
-      <Card title={`Dhams · ${PERIOD_LABEL[period]}${size ? ` · ${size === "big" ? "Big" : "Small"} books` : ""}`} subtitle="Tap a Dham to see who distributed how many books">
+      <Card id="dhams" title={`Dhams · ${PERIOD_LABEL[period]}${size ? ` · ${size === "big" ? "Big" : "Small"} books` : ""}`} subtitle="Tap a Dham to see who distributed how many books">
         {rows.length === 0 ? (
           <EmptyState icon="🛕" title="No active Dhams yet." />
         ) : (
@@ -80,7 +80,7 @@ export default async function DistributionPage({ searchParams }: { searchParams:
         )}
       </Card>
 
-      <Card title="Books distributed" subtitle="All Dhams, most distributed first" className="mt-4">
+      <Card id="books" title="Books distributed" subtitle="All Dhams, most distributed first" className="mt-4">
         {books.length === 0 ? (
           <p className="text-sm text-ink-500">No books distributed in this period yet.</p>
         ) : (

@@ -16,7 +16,7 @@ export function QueuedToday({ userId, date, children }: { userId: string; date: 
   return (
     <>
       <p className="mt-1 text-xl font-bold">📱 Today&apos;s report is saved on your phone</p>
-      <p className="mt-1 text-white/90">It will be sent to your Manager automatically as soon as you&apos;re back online. You don&apos;t need to do anything.</p>
+      <p className="mt-1 text-white/90">It will be sent to your Sector Sevak automatically as soon as you&apos;re back online. You don&apos;t need to do anything.</p>
     </>
   );
 }

@@ -16,6 +16,9 @@ export type AppUser = {
   phone: string | null;
   onboarded: boolean;
   dhamName: string | null;
+  isCoSevak: boolean;
+  /** Chakra Sevak always; others only when a Chakra Sevak gave access. */
+  canSeeAvailability: boolean;
 };
 
 export const getUser = cache(async (): Promise<AppUser | null> => {
@@ -37,6 +40,8 @@ export const getUser = cache(async (): Promise<AppUser | null> => {
     phone: u.phone,
     onboarded: u.onboarded,
     dhamName,
+    isCoSevak: u.isCoSevak,
+    canSeeAvailability: u.role === "admin" || u.canSeeAvailability,
   };
 });
 

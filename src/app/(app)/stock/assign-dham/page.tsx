@@ -19,7 +19,7 @@ export default async function AssignDhamPage({ searchParams }: { searchParams: P
         title="Assign Books to Dham"
         crumbs={[{ label: "Home", href: "/dashboard" }, { label: "Book Stock", href: "/stock" }, { label: "Assign Books to Dham" }]}
         doHere="Send books from the Central Store to a Dham: choose the Dham, enter quantities, review and confirm."
-        next="The Dham Manager is notified and can give the books to devotees."
+        next="The Sector Sevak is notified and can give the books to devotees."
       />
       <div className="grid gap-4 lg:grid-cols-3">
         <Card title="1. Choose the Dham" className="lg:col-span-1">

@@ -22,8 +22,8 @@ export default async function MyMoney() {
       <PageHeader
         title="Hand Over Money"
         crumbs={[{ label: "Home", href: "/dashboard" }, { label: "Submit Money" }]}
-        doHere="Record money when you hand it over to your Manager — cash, UPI or bank. It's optional and you can do it any time, in parts."
-        next="Your Manager confirms when the money is received, and you get a notification."
+        doHere="Record money when you hand it over to your Sector Sevak — cash, UPI or bank. It's optional and you can do it any time, in parts."
+        next="Your Sector Sevak confirms when the money is received, and you get a notification."
       />
       <div className="mb-5 grid grid-cols-3 gap-2 rounded-2xl border border-stone-200 bg-white p-4 text-center shadow-sm">
         <div><p className="text-xs text-ink-500">Money collected</p><p className="text-lg font-bold tabular-nums sm:text-2xl">{inr(m.collected)}</p></div>
@@ -53,7 +53,7 @@ export default async function MyMoney() {
                     <MoneyStatus status={r.status} />
                   </div>
                   <p className="text-sm text-ink-500">{fmtDate(r.submissionDate)} · {METHOD_LABEL[r.method]}{r.reference ? ` · ${r.reference}` : ""}</p>
-                  {r.reviewNote && <p className="mt-1 text-sm text-amber-800">Manager's note: {r.reviewNote}</p>}
+                  {r.reviewNote && <p className="mt-1 text-sm text-amber-800">Sector Sevak's note: {r.reviewNote}</p>}
                   {r.status !== "received" && <div className="mt-2"><DeleteButton action={deleteMoney} id={r.id} label="Delete" confirm={`Delete this ${inr(r.amountPaise)} entry?`} /></div>}
                 </li>
               ))}

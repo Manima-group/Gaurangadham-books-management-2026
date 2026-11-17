@@ -17,7 +17,7 @@ export type ProfileSP = {
 const SLOT: Record<string, string> = { morning: "Morning", afternoon: "Afternoon", evening: "Evening" };
 
 /**
- * Level 3 — one devotee's books, sales and full history. Shared by Global Admin, Dham Manager
+ * Level 3 — one devotee's books, sales and full history. Shared by Chakra Sevak, Sector Sevak
  * and the devotee's own view; the page that renders it has already checked access.
  */
 export async function DevoteeProfile({
@@ -50,11 +50,11 @@ export async function DevoteeProfile({
       {devotee.phone && <p className="-mt-4 mb-4 text-sm text-ink-500">📞 <a href={`tel:${devotee.phone}`} className="hover:underline">{devotee.phone}</a></p>}
 
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <StatCard label="Books received" value={num(tot.given)} />
-        <StatCard label="Sold (approved)" value={num(tot.sold)} tone="green" hint={amounts.pendingQty ? `+${num(amounts.pendingQty)} waiting approval` : undefined} />
-        <StatCard label="Returned" value={num(tot.returned)} hint={tot.damaged ? `${num(tot.damaged)} damaged / lost` : undefined} />
-        <StatCard label="Remaining with devotee" value={num(tot.left)} tone="purple" />
-        <StatCard label="Sales amount (approved)" value={inr(amounts.approved)} tone="blue" hint={amounts.pending ? `+${inr(amounts.pending)} waiting` : undefined} />
+        <StatCard label="Books received" value={num(tot.given)} href={`${withQuery(base, keep)}#books`} />
+        <StatCard label="Sold (approved)" value={num(tot.sold)} tone="green" href={withQuery(base, { ...keep, tab: "sales" })} hint={amounts.pendingQty ? `+${num(amounts.pendingQty)} waiting approval` : undefined} />
+        <StatCard label="Returned" value={num(tot.returned)} href={withQuery(base, { ...keep, tab: "history" })} hint={tot.damaged ? `${num(tot.damaged)} damaged / lost` : undefined} />
+        <StatCard label="Remaining with devotee" value={num(tot.left)} tone="purple" href={`${withQuery(base, keep)}#books`} />
+        <StatCard label="Sales amount (approved)" value={inr(amounts.approved)} tone="blue" href={withQuery(base, { ...keep, tab: "sales" })} hint={amounts.pending ? `+${inr(amounts.pending)} waiting` : undefined} />
       </div>
 
       <TabLinks
@@ -79,7 +79,7 @@ function BooksTab({ books, amounts }: { books: Books; amounts: Map<number, { app
   if (books.length === 0)
     return <Card><EmptyState icon="📚" title="No books given to this devotee yet.">Books appear here once the Dham gives them some.</EmptyState></Card>;
   return (
-    <Card title="Book Inventory" subtitle="Remaining = received − sold − returned − damaged. Current stock, not affected by any date filter.">
+    <Card id="books" title="Book Inventory" subtitle="Remaining = received − sold − returned − damaged. Current stock, not affected by any date filter.">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] text-sm">
           <thead className="text-left text-xs text-ink-500">
