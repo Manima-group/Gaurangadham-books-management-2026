@@ -48,7 +48,7 @@ export async function DevoteeDashboard({ user }: { user: AppUser }) {
           <ReportStatus status={todayReport!.status} />
         </Link>
       ) : (
-        <div className="rounded-3xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 p-5 text-white shadow-[0_14px_30px_-12px_rgb(217_85_18/0.8)]">
+        <div className="rounded-3xl bg-brand-600 p-5 text-white shadow-lift">
           <QueuedToday userId={user.id} date={today}>
             <p className="font-display text-xl font-bold">Add today's sales</p>
             <p className="mt-0.5 text-sm text-white/85">Where you went and how many books — takes a minute.</p>

@@ -68,7 +68,7 @@ export default async function DistributionPage({ searchParams }: { searchParams:
                     <p className="font-display text-2xl font-extrabold tabular-nums text-brand-700">{num(pick(r))}</p>
                   </div>
                   <div className="mt-1.5 h-2 rounded-full bg-stone-100">
-                    <div className="h-2 rounded-full bg-gradient-to-r from-brand-500 to-brand-400" style={{ width: `${(pick(r) / max) * 100}%` }} />
+                    <div className="h-2 rounded-full bg-brand-500" style={{ width: `${(pick(r) / max) * 100}%` }} />
                   </div>
                   <p className="mt-1.5 text-xs text-ink-500">
                     📕 Big {num(r.period.big)} · 📗 Small {num(r.period.small)} · {inr(r.period.amount)} · {r.period.people} of {r.devotees} devotees <span aria-hidden>›</span>

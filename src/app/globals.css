@@ -34,9 +34,9 @@
   --color-navy-700: #1d3772;
   --color-navy-600: #2a4a94;
 
-  --color-paper: #f8f5ef;
+  --color-paper: #f7f6f3;
 
-  --shadow-card: 0 1px 2px rgb(15 29 58 / 0.04), 0 4px 16px -4px rgb(15 29 58 / 0.08);
+  --shadow-card: 0 1px 2px rgb(15 29 58 / 0.04), 0 2px 8px -4px rgb(15 29 58 / 0.06);
   --shadow-lift: 0 2px 4px rgb(15 29 58 / 0.06), 0 12px 28px -8px rgb(15 29 58 / 0.18);
 
   --animate-fade-up: fade-up 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
@@ -49,11 +49,7 @@
 
 html { -webkit-text-size-adjust: 100%; }
 body {
-  background:
-    radial-gradient(1200px 500px at 100% -10%, rgb(242 107 29 / 0.06), transparent 60%),
-    radial-gradient(900px 400px at -10% 110%, rgb(29 55 114 / 0.05), transparent 60%),
-    var(--color-paper);
-  background-attachment: fixed;
+  background: var(--color-paper);
   color: var(--color-ink-800);
   font-feature-settings: "cv11", "ss01";
 }
@@ -63,26 +59,26 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
 /* Large, comfortable tap targets everywhere */
 input, select, textarea { font-size: 16px; }
 @utility field-input {
-  @apply w-full rounded-xl border border-stone-300/90 bg-white px-3.5 py-3 text-base text-ink-900 shadow-[inset_0_1px_2px_rgb(15_29_58/0.04)]
+  @apply w-full min-h-12 rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-base text-ink-900
          placeholder:text-ink-400 transition
          hover:border-stone-400 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-100 disabled:bg-stone-100;
 }
 @utility btn {
-  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-semibold
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 py-3 text-[15px] font-semibold
          transition duration-150 focus:outline-none focus-visible:ring-4 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100;
 }
-@utility btn-primary { @apply btn bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-[0_1px_0_rgb(255_255_255/0.25)_inset,0_6px_14px_-6px_rgb(217_85_18/0.7)] hover:from-brand-600 hover:to-brand-700 focus-visible:ring-brand-200; }
+@utility btn-primary { @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700 focus-visible:ring-brand-200; }
 @utility btn-secondary { @apply btn border border-stone-300 bg-white text-ink-800 shadow-sm hover:border-stone-400 hover:bg-stone-50 focus-visible:ring-stone-200; }
 @utility btn-danger { @apply btn bg-red-600 text-white shadow-sm hover:bg-red-700 focus-visible:ring-red-200; }
-@utility btn-success { @apply btn bg-gradient-to-b from-emerald-500 to-emerald-600 text-white shadow-[0_6px_14px_-6px_rgb(5_150_105/0.7)] hover:from-emerald-600 hover:to-emerald-700 focus-visible:ring-emerald-200; }
-@utility btn-warn { @apply btn bg-gradient-to-b from-amber-400 to-amber-500 text-amber-950 shadow-[0_6px_14px_-6px_rgb(217_119_6/0.7)] hover:from-amber-500 hover:to-amber-600 focus-visible:ring-amber-200; }
+@utility btn-success { @apply btn bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 focus-visible:ring-emerald-200; }
+@utility btn-warn { @apply btn bg-amber-400 text-amber-950 shadow-sm hover:bg-amber-500 focus-visible:ring-amber-200; }
 @utility btn-sm { @apply min-h-10 px-3.5 py-2 text-sm; }
 
 .data-table { @apply w-full text-left text-sm; }
-.data-table th { @apply bg-stone-50/80 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-500 first:rounded-l-lg last:rounded-r-lg; }
+.data-table th { @apply bg-stone-50 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-500 first:rounded-l-lg last:rounded-r-lg; }
 .data-table td { @apply border-t border-stone-100 px-3 py-3 align-top text-ink-800; }
 .data-table tbody tr { @apply transition-colors; }
-.data-table tbody tr:hover td { @apply bg-brand-50/50; }
+.data-table tbody tr:hover td { @apply bg-stone-50; }
 
 /* ------------------------------------------------------------------ */
 /* 3D spiritual intro — "Manima AI-Tech Solutions presents"           */
@@ -211,6 +207,14 @@ input, select, textarea { font-size: 16px; }
   #intro-splash *, #intro-splash *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; }
   .intro-progress { animation-duration: var(--intro-duration, 2s) !important; }
 }
+
+/* App frame: sidebar + content. The sidebar can fold to an icon rail (remembered per device). */
+@media (min-width: 1024px) {
+  .app-shell { grid-template-columns: auto minmax(0, 1fr); }
+}
+
+/* Visible keyboard focus everywhere (links, summaries, custom controls) */
+:where(a, summary, button):focus-visible { outline: 3px solid var(--color-brand-300); outline-offset: 2px; border-radius: 10px; }
 
 /* Comfortable tap area for text links (≥40px tall) without changing how they look */
 @utility tap { @apply inline-flex min-h-10 items-center; }

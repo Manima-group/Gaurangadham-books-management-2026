@@ -286,7 +286,7 @@ export function SalesForm({
         </section>
 
         {/* Sticky totals + send */}
-        <div className="sticky bottom-20 z-10 rounded-3xl bg-gradient-to-r from-navy-900 to-navy-800 p-3 text-white shadow-2xl lg:bottom-4">
+        <div className="sticky bottom-20 z-10 rounded-3xl bg-navy-900 p-3 text-white shadow-2xl lg:bottom-4">
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1 pl-1">
               <p className="text-xs text-white/70">{venues.length} place{venues.length === 1 ? "" : "s"} · {totals.qty} book{totals.qty === 1 ? "" : "s"}</p>

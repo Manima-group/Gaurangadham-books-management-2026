@@ -5,8 +5,8 @@ import { overview, salesByDay, dhamHealth } from "@/lib/stats";
 import { holderStock, total } from "@/lib/stock";
 import { setupProgress } from "@/lib/setup";
 import { inr, num, todayIST, timeAgo } from "@/lib/format";
-import { Alert, BarChart, Card, HBar, LinkButton, PageHeader, StatCard, Badge, EmptyState } from "@/components/ui";
-import { QuickActions } from "./quick";
+import { BarChart, Card, HBar, LinkButton, PageHeader, Section, StatCard, Badge, EmptyState } from "@/components/ui";
+import { QuickActions, TodoNow, type Todo } from "./quick";
 import { DhamWidgets } from "@/components/dhamwidgets";
 import { dhamWise } from "@/lib/distribution";
 
@@ -24,6 +24,23 @@ export async function AdminDashboard() {
   ]);
   const attention = health.filter((h) => h.isActive && h.reasons.length);
   const maxMoney = Math.max(...health.map((h) => h.collected), 1);
+  const todayTotal = dw.reduce((a, d) => ({ qty: a.qty + d.today.total, amt: a.amt + d.today.amount }), { qty: 0, amt: 0 });
+
+  const todo: Todo[] = [];
+  if (!setup.complete) todo.push({ href: "/setup", icon: "✅", tone: "amber", text: <>Setup is <b>{setup.done} of {setup.total}</b> steps complete — finish it so Sector Sevaks and Devotees can start</>, action: "Continue" });
+  if (o.reportsAwaiting) todo.push({ href: "/reports?status=submitted", icon: "📝", tone: "red", text: <><b>{num(o.reportsAwaiting)}</b> report{o.reportsAwaiting > 1 ? "s" : ""} waiting for review</>, action: "Review" });
+  for (const h of attention)
+    todo.push({
+      href: `/monitor?dham=${h.id}`,
+      icon: "🛕",
+      text: (
+        <>
+          <b>{h.name}</b>
+          {h.pending > 0 && <span className="ml-2"><Badge tone="amber">{inr(h.pending)} to submit</Badge></span>}
+          <span className="block text-xs text-ink-500">{h.reasons.join(" · ")}</span>
+        </>
+      ),
+    });
 
   return (
     <>
@@ -34,91 +51,89 @@ export async function AdminDashboard() {
         next="Use Quick Actions to add Dhams, books or people. Reports and Dhams that need your attention are listed below."
       />
 
-      {!setup.complete && (
-        <div className="mb-6">
-          <Alert tone="purple" title={`Setup is ${setup.done} of ${setup.total} steps complete`}>
-            Finish the setup so Sector Sevaks and Devotees can start working.{" "}
-            <Link href="/setup" className="font-semibold underline">Continue setup →</Link>
-          </Alert>
-        </div>
-      )}
-
-      <DhamWidgets rows={dw} />
-
-      <h2 className="mb-3 font-display text-lg font-bold text-ink-900">Books &amp; money at a glance</h2>
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard icon="🛕" label="Active Dhams" value={num(active)} href="/dhams" hint="Dhams currently distributing" />
+      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard icon="🤲" label="Distributed today" value={num(todayTotal.qty)} tone="purple" href="/distribution" hint={`${inr(todayTotal.amt)} · all Dhams`} />
         <StatCard icon="📦" label="Books available" value={num(o.available)} tone="blue" href="/stock" hint={`${num(total(central))} in Central Store, rest at Dhams & with devotees`} />
-        <StatCard icon="🤲" label="Books distributed" value={num(o.distributed)} tone="purple" href="/stock/history" hint="Given to devotees so far" />
-        <StatCard icon="📖" label="Books sold" value={num(o.soldApproved)} tone="green" href="/monitor" hint={o.soldPending ? `+ ${num(o.soldPending)} in reports being reviewed` : "From approved reports"} />
-        <StatCard icon="🪙" label="Money collected" value={inr(o.collected)} tone="green" href="/money" hint="As reported by devotees" />
-        <StatCard icon="🏦" label="Money submitted" value={inr(o.submitted)} tone="blue" href="/money" hint={`${inr(o.receivedConfirmed)} confirmed by Sector Sevaks`} />
         <StatCard icon="⏳" label="Money yet to submit" value={inr(o.pendingMoney)} tone={o.pendingMoney > 0 ? "amber" : "green"} href="/money" hint="Collected but not yet handed over" />
         <StatCard icon="📝" label="Reports waiting for review" value={num(o.reportsAwaiting)} tone={o.reportsAwaiting ? "red" : "gray"} href="/reports?status=submitted" hint={o.reportsAwaiting ? "Tap to review" : "All caught up"} />
       </div>
 
-      <QuickActions
-        items={[
-          { href: "/dhams", label: "Add a Dham", icon: "🛕" },
-          { href: "/books", label: "Add a Book", icon: "📚" },
-          { href: "/books#prices", label: "Update Book Prices", icon: "🏷️" },
-          { href: "/people?role=manager", label: "Add a Sector Sevak", icon: "🧑‍💼" },
-          { href: "/people?role=devotee", label: "Add a Devotee", icon: "🙋" },
-          { href: "/drives", label: "Create a Distribution Drive", icon: "🚩" },
-          { href: "/stock/receive", label: "Receive Books", icon: "📥" },
-          { href: "/monitor", label: "View Reports", icon: "📊", badge: o.reportsAwaiting },
-        ]}
-      />
-
-      <div className="grid gap-4 lg:grid-cols-5">
-        <Card title="Sales in the last 14 days" subtitle="Value of books sold each day (approved and being reviewed)" className="lg:col-span-3">
-          <BarChart
-            data={chart.map((d) => ({ label: d.date.slice(8), value: d.amount, sub: `${d.qty} books` }))}
-            format={(n) => inr(n)}
+      <div className="grid gap-5 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <TodoNow items={todo} done="All Dhams are up to date." />
+        </div>
+        <div className="lg:col-span-2">
+          <QuickActions
+            primary
+            title="Main actions"
+            items={[
+              { href: "/stock/receive", label: "Receive Books", icon: "📥" },
+              { href: "/stock/assign-dham", label: "Send Books to a Dham", icon: "🚚" },
+              { href: "/reports?status=submitted", label: "Review Reports", icon: "📝", badge: o.reportsAwaiting },
+              { href: "/people", label: "Sevaks & Devotees", icon: "👥" },
+            ]}
           />
-        </Card>
-        <Card title="Money by Dham" subtitle="Collected vs. submitted" className="lg:col-span-2">
-          {health.length === 0 ? (
-            <EmptyState title="No Dhams yet" action={<LinkButton href="/dhams" size="sm">Add a Dham</LinkButton>}>
-              Add your first Dham to start.
-            </EmptyState>
-          ) : (
-            <div className="space-y-4">
-              {health.map((h) => (
-                <div key={h.id} className="space-y-1.5">
-                  <p className="text-sm font-semibold">{h.name}</p>
-                  <HBar label="Collected" value={h.collected} max={maxMoney} format={inr} />
-                  <HBar label="Submitted" value={h.submitted} max={maxMoney} format={inr} tone="green" />
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+        </div>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Card title="Dhams that need attention" subtitle="Things to follow up today">
-          {attention.length === 0 ? (
-            <p className="py-4 text-sm text-ink-500">✅ All Dhams are up to date.</p>
-          ) : (
-            <ul className="divide-y divide-stone-100">
-              {attention.map((h) => (
-                <li key={h.id} className="py-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <Link href={`/monitor?dham=${h.id}`} className="tap font-semibold hover:underline">{h.name}</Link>
-                    {h.pending > 0 && <Badge tone="amber">{inr(h.pending)} to submit</Badge>}
-                  </div>
-                  <ul className="mt-1 list-inside list-disc text-sm text-ink-700">
-                    {h.reasons.map((r) => <li key={r}>{r}</li>)}
-                  </ul>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-        <Card title="Recent activity" actions={<Link href="/activity" className="tap text-sm font-semibold text-brand-700 hover:underline">View all</Link>}>
+      <div className="space-y-3">
+        <Section icon="🛕" title="Distribution by Dham — today" hint={dw.map((d) => `${d.name.replace(/ Dham$/, "")} ${num(d.today.total)}`).join(" · ") || "No active Dhams yet"}>
+          <DhamWidgets rows={dw} title="Dham-wise distribution" />
+        </Section>
+        <Section icon="📊" title="All numbers" hint="Dhams, books distributed and sold, money collected and submitted">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCard icon="🛕" label="Active Dhams" value={num(active)} href="/dhams" hint="Dhams currently distributing" />
+            <StatCard icon="🤲" label="Books distributed" value={num(o.distributed)} tone="purple" href="/stock/history" hint="Given to devotees so far" />
+            <StatCard icon="📖" label="Books sold" value={num(o.soldApproved)} tone="green" href="/monitor" hint={o.soldPending ? `+ ${num(o.soldPending)} in reports being reviewed` : "From approved reports"} />
+            <StatCard icon="🪙" label="Money collected" value={inr(o.collected)} tone="green" href="/money" hint="As reported by devotees" />
+            <StatCard icon="🏦" label="Money submitted" value={inr(o.submitted)} tone="blue" href="/money" hint={`${inr(o.receivedConfirmed)} confirmed by Sector Sevaks`} />
+          </div>
+        </Section>
+        <Section icon="⚡" title="All quick actions" hint="Add Dhams, books, people, drives and more">
+          <QuickActions
+            bare
+            items={[
+              { href: "/dhams", label: "Add a Dham", icon: "🛕" },
+              { href: "/books", label: "Add a Book", icon: "📚" },
+              { href: "/books#prices", label: "Update Book Prices", icon: "🏷️" },
+              { href: "/people?role=manager", label: "Add a Sector Sevak", icon: "🧑‍💼" },
+              { href: "/people?role=devotee", label: "Add a Devotee", icon: "🙋" },
+              { href: "/drives", label: "Create a Distribution Drive", icon: "🚩" },
+              { href: "/stock/receive", label: "Receive Books", icon: "📥" },
+              { href: "/monitor", label: "View Reports", icon: "📊", badge: o.reportsAwaiting },
+            ]}
+          />
+        </Section>
+        <Section icon="📈" title="Sales and money charts" hint="Sales in the last 14 days · money by Dham">
+          <div className="grid gap-4 lg:grid-cols-5">
+            <Card title="Sales in the last 14 days" subtitle="Value of books sold each day (approved and being reviewed)" className="lg:col-span-3">
+              <BarChart
+                data={chart.map((d) => ({ label: d.date.slice(8), value: d.amount, sub: `${d.qty} books` }))}
+                format={(n) => inr(n)}
+              />
+            </Card>
+            <Card title="Money by Dham" subtitle="Collected vs. submitted" className="lg:col-span-2">
+              {health.length === 0 ? (
+                <EmptyState title="No Dhams yet" action={<LinkButton href="/dhams" size="sm">Add a Dham</LinkButton>}>
+                  Add your first Dham to start.
+                </EmptyState>
+              ) : (
+                <div className="space-y-4">
+                  {health.map((h) => (
+                    <div key={h.id} className="space-y-1.5">
+                      <p className="text-sm font-semibold">{h.name}</p>
+                      <HBar label="Collected" value={h.collected} max={maxMoney} format={inr} />
+                      <HBar label="Submitted" value={h.submitted} max={maxMoney} format={inr} tone="green" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        </Section>
+        <Section icon="🕘" title="Recent activity" hint={recent[0] ? `${recent[0].action} · ${timeAgo(recent[0].createdAt)}` : "Nothing has happened yet."}>
           {recent.length === 0 ? (
-            <p className="py-4 text-sm text-ink-500">Nothing has happened yet.</p>
+            <p className="text-sm text-ink-500">Nothing has happened yet.</p>
           ) : (
             <ul className="space-y-3">
               {recent.map((a) => (
@@ -129,7 +144,8 @@ export async function AdminDashboard() {
               ))}
             </ul>
           )}
-        </Card>
+          <Link href="/activity" className="tap mt-2 text-sm font-semibold text-brand-700 hover:underline">View all activity →</Link>
+        </Section>
       </div>
     </>
   );

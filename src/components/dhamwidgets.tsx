@@ -27,15 +27,14 @@ export function DhamWidgets({ rows, title = "Dham-wise distribution", showAllCar
     { tBig: 0, tSmall: 0, tAmt: 0, people: 0, devotees: 0, aBig: 0, aSmall: 0 },
   );
   return (
-    <section aria-labelledby="dw" className="mb-6">
+    <section aria-labelledby="dw">
       <div className="mb-3 flex items-end justify-between gap-2">
         <h2 id="dw" className="font-display text-lg font-bold text-ink-900">{title}</h2>
         <Link href="/distribution" className="tap text-sm font-semibold text-brand-700 hover:underline">More filters →</Link>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {showAllCard && rows.length > 1 && (
-          <Link href="/distribution" className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy-800 via-navy-900 to-navy-950 p-4 text-white shadow-lift transition hover:-translate-y-0.5">
-            <span aria-hidden className="pointer-events-none absolute -top-10 right-0 h-32 w-32 rounded-full bg-brand-500/30 blur-2xl" />
+          <Link href="/distribution" className="group relative overflow-hidden rounded-2xl bg-navy-900 p-4 text-white shadow-lift transition hover:bg-navy-800">
             <p className="text-sm font-semibold text-blue-100/80">All Dhams · Today</p>
             <p className="mt-1 font-display text-4xl font-extrabold tabular-nums">{num(sum.tBig + sum.tSmall)}</p>
             <p className="text-sm text-blue-100/80">books distributed · {inr(sum.tAmt)}</p>

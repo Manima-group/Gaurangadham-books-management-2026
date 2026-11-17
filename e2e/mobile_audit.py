@@ -1,6 +1,7 @@
 import re, json, sys
 from playwright.sync_api import sync_playwright
-exec(open("/home/claude/e2e/allpages.py").read().split("total=0")[0])  # PAGES
+import os
+exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "allpages.py")).read().split("total=0")[0])  # PAGES
 EXTRA = {("9000000001","admin123"): ["/reports/1","/stock/take-back?devotee=", "/welcome?again=1"], ("9000000002","manager123"): ["/reports/1"]}
 CHECK = """() => {
   const vw = document.documentElement.clientWidth, out = {hscroll: document.documentElement.scrollWidth > vw + 1, wide: [], small: []};
