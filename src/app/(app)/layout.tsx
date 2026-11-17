@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/session";
 import { db, schema } from "@/db";
 import { navFor } from "@/lib/nav";
 import { ROLE_LABEL } from "@/lib/terms";
-import { BottomNav, MobileMenu, SideNav } from "@/components/nav";
+import { BottomNav, DesktopSidebar, MobileMenu } from "@/components/nav";
 import { logoutAction } from "@/app/actions/auth";
 import { APP_NAME, APP_TAGLINE, MANIMA_LOGO_LIGHT_SVG, MANIMA_NAME, MANIMA_URL } from "@/lib/brand";
 import { BrandMark } from "@/components/brandmark";
@@ -28,7 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const place = u.role === "admin" ? "All Dhams" : u.dhamName ?? "No Dham assigned";
 
   const account = (
-    <div className="mt-6 space-y-0.5 border-t border-white/10 pt-4">
+    <div className="mt-4 space-y-0.5 border-t border-white/10 pt-3">
       <Link href="/account" className="block rounded-xl px-3 py-2 text-sm text-blue-100/80 hover:bg-white/[0.07] hover:text-white">
         🔑 My Account &amp; Password
       </Link>
@@ -53,27 +53,31 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[17rem_1fr]">
-      <aside className="sticky top-0 hidden h-dvh flex-col overflow-y-auto bg-gradient-to-b from-navy-900 via-navy-900 to-navy-950 px-3 py-5 text-white lg:flex">
-        <Link href="/dashboard" className="mb-7 flex items-center gap-3 px-2">
-          <BrandMark size={48} />
-          <span className="min-w-0 leading-tight">
-            <span className="block font-display text-[16px] font-bold text-white">{APP_NAME}</span>
-            <span className="block text-xs text-brand-200/80">{APP_TAGLINE}</span>
-          </span>
-        </Link>
-        <div className="flex-1">
-          <SideNav items={items} />
-          {account}
-        </div>
-        {credit}
-      </aside>
+    <div className="app-shell min-h-dvh lg:grid">
+      <DesktopSidebar
+        items={items}
+        brand={
+          <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5 px-1">
+            <BrandMark size={40} />
+            <span className="min-w-0 leading-tight">
+              <span className="block truncate font-display text-[15px] font-bold text-white">{APP_NAME}</span>
+              <span className="block truncate text-[11px] text-brand-200/80">{APP_TAGLINE}</span>
+            </span>
+          </Link>
+        }
+        brandSmall={
+          <Link href="/dashboard" aria-label={APP_NAME}>
+            <BrandMark size={36} />
+          </Link>
+        }
+        footer={<>{account}{credit}</>}
+      />
 
       <div className="flex min-w-0 flex-col">
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-stone-200/70 bg-white/80 px-4 py-2.5 backdrop-blur-md sm:px-6">
+        <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-stone-200/80 bg-white/90 px-3 py-2 backdrop-blur-md sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            {u.role !== "devotee" && <MobileMenu items={items}>{account}{credit}</MobileMenu>}
-            <BrandMark size={36} className="lg:hidden" />
+            <MobileMenu items={items}>{account}{credit}</MobileMenu>
+            <BrandMark size={34} className="hidden min-[360px]:block lg:hidden" />
             <div className="min-w-0">
               <p className="truncate font-display text-[15px] font-bold text-ink-900">Hare Krishna, {u.name.split(" ")[0]} 🙏</p>
               <p className="truncate text-xs font-medium text-ink-500">
@@ -84,7 +88,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-2">
             <Link
               href="/notifications"
-              className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-stone-200 bg-white text-lg shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-stone-200 bg-white text-lg shadow-sm transition hover:bg-stone-50"
               aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`}
             >
               🔔
@@ -102,7 +106,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         <OfflineSync userId={u.id} role={u.role} />
-        <main className="mx-auto w-full max-w-6xl flex-1 animate-fade-up px-4 pb-28 pt-6 sm:px-6 lg:pb-10">
+        <main className="mx-auto w-full max-w-[1240px] flex-1 animate-fade-up px-4 pb-28 pt-5 sm:px-6 sm:pt-6 lg:px-8 lg:pb-12">
           <NavLoader>{children}</NavLoader>
         </main>
       </div>

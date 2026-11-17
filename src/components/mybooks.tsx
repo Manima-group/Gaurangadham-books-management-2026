@@ -88,7 +88,7 @@ export function BookList({ books, limit }: { books: DevoteeBook[]; limit?: numbe
               </div>
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-100" aria-hidden>
-              <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400" style={{ width: `${pct}%` }} />
+              <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
             </div>
             <p className="mt-1.5 flex flex-wrap justify-between gap-x-3 text-xs text-ink-700">
               <span>

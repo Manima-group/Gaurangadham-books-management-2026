@@ -141,7 +141,7 @@ export default async function AvailabilityPage({ searchParams }: { searchParams:
                           return (
                             <tr key={b.id}>
                               <td className="py-2 pr-3">
-                                <Link href={`/availability/${b.id}?dham=${d.id}`} className="font-semibold text-brand-700 underline-offset-2 hover:underline">{b.title}</Link>
+                                <Link href={`/availability/${b.id}?dham=${d.id}`} className="inline-flex min-h-10 items-center font-semibold text-brand-700 underline-offset-2 hover:underline">{b.title}</Link>
                                 <span className="text-ink-500"> · {b.language}</span>
                               </td>
                               <td className="py-2 pr-3 text-right tabular-nums">{num(v.shelf)}</td>

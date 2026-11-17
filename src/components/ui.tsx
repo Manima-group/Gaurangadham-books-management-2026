@@ -15,8 +15,9 @@ const TONES: Record<Tone, string> = {
 };
 
 /**
- * Every page starts with this header. It answers the three UX questions:
- * Where am I? What should I do here? What happens after I finish?
+ * Every page starts with this header: where am I (crumbs), the page title and its main actions.
+ * "What to do here" and "What happens next" sit in one small, collapsed help panel so the page
+ * itself starts with the work. It opens with a tap or the keyboard (native <details>).
  */
 export function PageHeader({
   title,
@@ -32,53 +33,93 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="mb-6">
+    <header className="relative mb-5 sm:mb-6">
       {crumbs && crumbs.length > 0 && (
-        <nav aria-label="You are here" className="mb-2 flex flex-wrap items-center gap-1 text-[13px] font-medium text-ink-500">
+        <nav aria-label="You are here" className="mb-1.5 flex flex-wrap items-center gap-1 text-[13px] font-medium text-ink-500">
           {crumbs.map((c, i) => (
             <span key={i} className="flex items-center gap-1">
               {c.href ? (
-                <Link href={c.href} className="text-brand-700 hover:underline">
+                <Link href={c.href} className="text-ink-500 transition hover:text-brand-700 hover:underline">
                   {c.label}
                 </Link>
               ) : (
-                <span>{c.label}</span>
+                <span className="text-ink-700">{c.label}</span>
               )}
-              {i < crumbs.length - 1 && <span aria-hidden>›</span>}
+              {i < crumbs.length - 1 && <span aria-hidden className="text-ink-400">/</span>}
             </span>
           ))}
         </nav>
       )}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <h1 className="font-display text-[26px] font-extrabold leading-tight tracking-tight text-ink-900 sm:text-[32px]">{title}</h1>
-        {actions && <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap [&>*:only-child]:col-span-2 [&>*]:min-w-0 [&>*]:px-3 sm:[&>*]:px-5">{actions}</div>}
-      </div>
-      {(doHere || next) && (
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {doHere && (
-            <div className="flex gap-3 rounded-2xl border border-brand-200/60 bg-gradient-to-br from-brand-50 to-white px-4 py-3 text-sm leading-relaxed text-ink-700">
-              <span aria-hidden className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-sm">👉</span>
-              <p><span className="font-semibold text-brand-800">What to do here: </span>{doHere}</p>
-            </div>
-          )}
-          {next && (
-            <>
-              <div className="hidden gap-3 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/70 to-white px-4 py-3 text-sm leading-relaxed text-ink-700 sm:flex">
-                <span aria-hidden className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-sm">➡️</span>
-                <p><span className="font-semibold text-navy-700">What happens next: </span>{next}</p>
-              </div>
-              <details className="group rounded-2xl border border-blue-100 bg-blue-50/50 text-sm text-ink-700 sm:hidden">
-                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-4 font-semibold text-navy-700 [&::-webkit-details-marker]:hidden">
-                  <span>➡️ What happens next?</span>
-                  <span aria-hidden className="transition group-open:rotate-180">▾</span>
-                </summary>
-                <p className="px-4 pb-3 leading-relaxed">{next}</p>
-              </details>
-            </>
-          )}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-2">
+          <h1 className="font-display text-[24px] font-extrabold leading-tight tracking-tight text-ink-900 sm:text-[28px]">{title}</h1>
+          {(doHere || next) && <PageHelp doHere={doHere} next={next} />}
         </div>
-      )}
+        {actions && <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end [&>*:only-child]:col-span-2 [&>*]:min-w-0 [&>*]:px-3 sm:[&>*]:px-4">{actions}</div>}
+      </div>
     </header>
+  );
+}
+
+/** The page's guidance, folded into a small "ⓘ Help" button next to the title. */
+function PageHelp({ doHere, next }: { doHere?: ReactNode; next?: ReactNode }) {
+  return (
+    <details className="group shrink-0 [&_summary::-webkit-details-marker]:hidden">
+      <summary
+        className="mt-0.5 inline-flex min-h-9 cursor-pointer list-none items-center gap-1 rounded-full border border-stone-200 bg-white px-2.5 text-xs font-semibold text-ink-500 transition hover:border-brand-300 hover:text-brand-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-100 group-open:border-brand-300 group-open:bg-brand-50 group-open:text-brand-700 sm:mt-1.5"
+        aria-label="How this page works"
+      >
+        <span aria-hidden className="text-sm leading-none">ⓘ</span> Help
+      </summary>
+      <div className="absolute inset-x-0 top-full z-40 mt-2 max-w-xl rounded-2xl border border-stone-200 bg-white p-4 text-sm leading-relaxed text-ink-700 shadow-lift">
+        {doHere && (
+          <p>
+            <span className="font-semibold text-ink-900">What to do here: </span>
+            {doHere}
+          </p>
+        )}
+        {next && (
+          <p className={doHere ? "mt-2 border-t border-stone-100 pt-2" : ""}>
+            <span className="font-semibold text-ink-900">What happens next: </span>
+            {next}
+          </p>
+        )}
+      </div>
+    </details>
+  );
+}
+
+/**
+ * A titled section that opens and closes (native <details>: works by tap and keyboard).
+ * Used to keep secondary information one tap away instead of filling the page.
+ */
+export function Section({
+  title,
+  hint,
+  icon,
+  defaultOpen = false,
+  children,
+  id,
+}: {
+  title: string;
+  hint?: ReactNode;
+  icon?: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+  id?: string;
+}) {
+  return (
+    <details id={id} open={defaultOpen} className="group scroll-mt-20 rounded-2xl border border-stone-200/80 bg-white shadow-card [&_summary::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-2xl px-4 py-3 transition hover:bg-stone-50/70 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-100 sm:px-5">
+        {icon && <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-lg">{icon}</span>}
+        <span className="min-w-0 flex-1">
+          <span className="block font-display text-[15px] font-bold text-ink-900">{title}</span>
+          {hint && <span className="block truncate text-xs text-ink-500">{hint}</span>}
+        </span>
+        <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-100 text-ink-500 transition group-open:rotate-180">▾</span>
+      </summary>
+      <div className="border-t border-stone-100 px-4 py-4 sm:px-5">{children}</div>
+    </details>
   );
 }
 
@@ -98,11 +139,11 @@ export function Card({
   id?: string;
 }) {
   return (
-    <section id={id} className={`min-w-0 scroll-mt-20 rounded-2xl border border-stone-200/70 bg-white p-4 shadow-card sm:p-5 ${className}`}>
+    <section id={id} className={`min-w-0 scroll-mt-20 rounded-2xl border border-stone-200/80 bg-white p-4 shadow-card sm:p-5 ${className}`}>
       {(title || actions) && (
         <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
           <div>
-            {title && <h2 className="font-display text-lg font-bold text-ink-900">{title}</h2>}
+            {title && <h2 className="font-display text-base font-bold text-ink-900 sm:text-[17px]">{title}</h2>}
             {subtitle && <p className="mt-0.5 text-sm text-ink-500">{subtitle}</p>}
           </div>
           {actions}
@@ -128,6 +169,14 @@ export function StatCard({
   href?: string;
   icon?: string;
 }) {
+  const valueTone: Record<Tone, string> = {
+    gray: "text-ink-900",
+    blue: "text-ink-900",
+    amber: "text-amber-700",
+    green: "text-ink-900",
+    red: "text-red-700",
+    purple: "text-ink-900",
+  };
   const chip: Record<Tone, string> = {
     gray: "bg-stone-100",
     blue: "bg-sky-100",
@@ -136,28 +185,19 @@ export function StatCard({
     red: "bg-red-100",
     purple: "bg-violet-100",
   };
-  const bar: Record<Tone, string> = {
-    gray: "from-stone-300 to-stone-200",
-    blue: "from-sky-500 to-sky-300",
-    amber: "from-amber-500 to-amber-300",
-    green: "from-emerald-500 to-emerald-300",
-    red: "from-red-500 to-red-300",
-    purple: "from-violet-500 to-violet-300",
-  };
   const body = (
     <div
-      className={`relative h-full overflow-hidden rounded-2xl border border-stone-200/70 bg-white p-4 shadow-card ${
-        href ? "transition duration-200 hover:-translate-y-0.5 hover:shadow-lift" : ""
+      className={`relative h-full rounded-2xl border border-stone-200/80 bg-white p-4 shadow-card ${
+        href ? "transition duration-200 group-hover:border-stone-300 group-hover:shadow-lift" : ""
       }`}
     >
-      <span aria-hidden className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${bar[tone]}`} />
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[13px] font-semibold leading-snug text-ink-500">{label}</p>
-        {icon && <span aria-hidden className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg ${chip[tone]}`}>{icon}</span>}
+        <p className="text-[13px] font-medium leading-snug text-ink-500">{label}</p>
+        {icon && <span aria-hidden className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base ${chip[tone]}`}>{icon}</span>}
       </div>
-      <p className="mt-1.5 font-display text-2xl font-extrabold tabular-nums tracking-tight text-ink-900 sm:text-[28px]">{value}</p>
-      {hint && <p className="mt-1 text-xs leading-snug text-ink-500">{hint}</p>}
-      {href && <span aria-hidden className="absolute bottom-3 right-3 text-ink-400 transition group-hover:text-brand-600">→</span>}
+      <p className={`mt-1 font-display text-[22px] font-extrabold tabular-nums tracking-tight sm:text-[26px] ${valueTone[tone]}`}>{value}</p>
+      {hint && <p className="mt-0.5 pr-4 text-xs leading-snug text-ink-500">{hint}</p>}
+      {href && <span aria-hidden className="absolute bottom-3 right-3 text-sm text-ink-400 transition group-hover:translate-x-0.5 group-hover:text-brand-600">›</span>}
     </div>
   );
   return href ? (
@@ -210,8 +250,8 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center rounded-2xl border-2 border-dashed border-stone-200 bg-gradient-to-b from-white to-stone-50/60 px-6 py-10 text-center">
-      <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-50 text-3xl ring-1 ring-brand-100" aria-hidden>
+    <div className="flex flex-col items-center rounded-2xl border border-dashed border-stone-300 bg-white/60 px-6 py-10 text-center">
+      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-stone-100 text-2xl" aria-hidden>
         {icon}
       </span>
       <p className="mt-4 font-display text-base font-bold text-ink-900">{title}</p>
@@ -335,7 +375,7 @@ export function BarChart({
         {data.map((d, i) => (
           <div key={i} className="group relative flex h-full flex-1 flex-col justify-end">
             <div
-              className="w-full rounded-t-md bg-gradient-to-t from-brand-600 to-brand-400 transition group-hover:from-navy-700 group-hover:to-navy-600"
+              className="w-full rounded-t bg-brand-400 transition group-hover:bg-brand-600"
               style={{ height: `${Math.max((d.value / max) * 100, d.value > 0 ? 2 : 0)}%` }}
               title={`${d.label}: ${format(d.value)}${d.sub ? ` · ${d.sub}` : ""}`}
             />
@@ -358,15 +398,15 @@ export function BarChart({
 
 /** Horizontal comparison bars, e.g. collected vs submitted per Dham. */
 export function HBar({ label, value, max, format, tone = "brand" }: { label: string; value: number; max: number; format: (n: number) => string; tone?: "brand" | "green" | "red" }) {
-  const color = { brand: "bg-gradient-to-r from-brand-500 to-brand-400", green: "bg-gradient-to-r from-emerald-500 to-emerald-400", red: "bg-red-500" }[tone];
+  const color = { brand: "bg-brand-500", green: "bg-emerald-500", red: "bg-red-500" }[tone];
   return (
     <div>
       <div className="flex justify-between text-sm">
         <span className="text-ink-700">{label}</span>
         <span className="font-semibold tabular-nums">{format(value)}</span>
       </div>
-      <div className="mt-1 h-2.5 rounded-full bg-stone-100">
-        <div className={`h-2.5 rounded-full ${color}`} style={{ width: `${max ? Math.min((value / max) * 100, 100) : 0}%` }} />
+      <div className="mt-1 h-2 rounded-full bg-stone-100">
+        <div className={`h-2 rounded-full ${color}`} style={{ width: `${max ? Math.min((value / max) * 100, 100) : 0}%` }} />
       </div>
     </div>
   );

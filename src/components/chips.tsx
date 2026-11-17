@@ -11,7 +11,7 @@ export function ChipLinks({ items, label }: { items: { href: string; label: stri
           aria-current={it.active ? "true" : undefined}
           className={`inline-flex min-h-10 shrink-0 items-center rounded-full px-4 text-sm font-semibold transition ${
             it.active
-              ? "bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-[0_6px_14px_-8px_rgb(217_85_18/0.9)]"
+              ? "bg-brand-600 text-white shadow-sm"
               : "border border-stone-300 bg-white text-ink-700 hover:bg-stone-50"
           }`}
         >
