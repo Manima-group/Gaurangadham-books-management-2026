@@ -73,21 +73,74 @@ export function SideNav({ items, compact, badges = {} }: { items: NavItem[]; com
   const path = usePathname();
   const current = activeHref(path, items);
   const groups = groupItems(items);
-  return (
-    <nav aria-label="Main menu" className={compact ? "space-y-1" : "space-y-4"}>
-      {groups.map(([g, list], i) => (
-        <div key={g || "main"} className={compact && i ? "border-t border-stone-200 pt-2" : ""}>
-          {g && !compact && <p className="mb-1 px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-ink-500">{g}</p>}
-          <ul className="space-y-1">
-            {list.map((it) => (
-              <li key={it.href}>
-                <NavLink it={it} active={current === it.href} compact={compact} badge={badges[it.href]} />
-              </li>
-            ))}
-          </ul>
-        </div>
+  const links = (list: NavItem[]) => (
+    <ul className="space-y-1">
+      {list.map((it) => (
+        <li key={it.href}>
+          <NavLink it={it} active={current === it.href} compact={compact} badge={badges[it.href]} />
+        </li>
       ))}
+    </ul>
+  );
+  if (compact)
+    return (
+      <nav aria-label="Main menu" className="space-y-1">
+        {groups.map(([g, list], i) => <div key={g || "main"} className={i ? "border-t border-stone-200 pt-2" : ""}>{links(list)}</div>)}
+      </nav>
+    );
+  return (
+    <nav aria-label="Main menu" className="space-y-1.5">
+      {groups.map(([g, list]) =>
+        g ? (
+          <NavGroup
+            key={g}
+            title={g}
+            holdsCurrent={list.some((it) => it.href === current)}
+            waiting={list.reduce((a, it) => a + (badges[it.href] ?? 0), 0)}
+          >
+            {links(list)}
+          </NavGroup>
+        ) : (
+          <div key="main" className="pb-1">{links(list)}</div>
+        ),
+      )}
     </nav>
+  );
+}
+
+/**
+ * A menu section that folds open/closed with one tap on its heading. Open by default; a folded
+ * section stays folded on this device. The section holding the current page always opens, and a
+ * folded section still shows how many things are waiting inside it.
+ */
+function NavGroup({ title, holdsCurrent, waiting, children }: { title: string; holdsCurrent: boolean; waiting: number; children: React.ReactNode }) {
+  const key = `gb-nav-${title}`;
+  const [open, setOpen] = useState(true);
+  useEffect(() => {
+    if (holdsCurrent) return setOpen(true);
+    try { setOpen(localStorage.getItem(key) !== "0"); } catch {}
+  }, [key, holdsCurrent]);
+  const toggle = () =>
+    setOpen((o) => {
+      try { localStorage.setItem(key, o ? "0" : "1"); } catch {}
+      return !o;
+    });
+  const id = `nav-${title.replace(/\W+/g, "-").toLowerCase()}`;
+  return (
+    <div className="border-t border-stone-100 pt-1.5">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={open}
+        aria-controls={id}
+        className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-ink-500 transition hover:bg-stone-50 hover:text-ink-900"
+      >
+        <span className="flex-1">{title}</span>
+        {!open && waiting > 0 && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold normal-case tracking-normal text-red-700">{waiting}</span>}
+        <span aria-hidden className={`text-xs transition-transform ${open ? "rotate-0" : "-rotate-90"}`}>▾</span>
+      </button>
+      <div id={id} hidden={!open} className="pt-1">{children}</div>
+    </div>
   );
 }
 
