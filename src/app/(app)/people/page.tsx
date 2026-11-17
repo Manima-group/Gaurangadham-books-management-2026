@@ -3,7 +3,7 @@ import { and, asc, eq, type SQL } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { requireUser } from "@/lib/session";
 import { activeDhams, allDhams } from "@/lib/lookups";
-import { togglePerson } from "@/app/actions/setup";
+import { setAvailabilityForRole, toggleAvailability, togglePerson } from "@/app/actions/setup";
 import { ROLE_LABEL, type Role } from "@/lib/terms";
 import { Badge, Card, EmptyState, PageHeader } from "@/components/ui";
 import { EditPersonForm, PersonForm, ResetPasswordForm } from "./forms";
@@ -14,37 +14,45 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
   const u = await requireUser("admin", "manager");
   const sp = await searchParams;
   const isAdmin = u.role === "admin";
-  const role = (isAdmin ? (["manager", "devotee", "admin"].includes(sp.role ?? "") ? sp.role : "devotee") : "devotee") as Role;
+  const allowed = isAdmin ? ["manager", "devotee", "admin"] : ["devotee", "manager"];
+  const role = (allowed.includes(sp.role ?? "") ? sp.role : "devotee") as Role;
   const c: SQL[] = [eq(schema.user.role, role)];
   if (!isAdmin) c.push(eq(schema.user.dhamId, u.dhamId!));
   else if (sp.dham) c.push(eq(schema.user.dhamId, Number(sp.dham)));
+  const mayManage = (p: { id: string; role: string; isCoSevak: boolean }) =>
+    isAdmin || (p.id !== u.id && (p.role === "devotee" || (p.role === "manager" && p.isCoSevak)));
   const [people, dhams, all] = await Promise.all([
     db.select().from(schema.user).where(and(...c)).orderBy(asc(schema.user.name)),
     activeDhams(),
     allDhams(),
   ]);
   const dn = new Map(all.map((d) => [d.id, d.name]));
-  const label = { manager: "Dham Managers", devotee: "Devotees", admin: "Global Admins" }[role];
+  const label = { manager: "Sector Sevaks", devotee: "Devotees", admin: "Chakra Sevaks" }[role];
 
   return (
     <>
       <PageHeader
-        title={isAdmin ? "Managers & Devotees" : "My Devotees"}
-        crumbs={[{ label: "Home", href: "/dashboard" }, { label: isAdmin ? "Settings" : "More" }, { label: isAdmin ? "Managers & Devotees" : "My Devotees" }]}
-        doHere={isAdmin ? "Add the people who use the app and choose their role and Dham." : `Add devotees of ${u.dhamName} and help them if they forget their password.`}
+        title={isAdmin ? "Sevaks & Devotees" : "My Devotees & Co-Sevaks"}
+        crumbs={[{ label: "Home", href: "/dashboard" }, { label: isAdmin ? "Settings" : "More" }, { label: isAdmin ? "Sevaks & Devotees" : "My Devotees & Co-Sevaks" }]}
+        doHere={isAdmin ? "Add the people who use the app, choose their role and Dham, and decide who may see Book Availability." : `Add devotees of ${u.dhamName}, or a Co-Sevak to help you run it, and help them if they forget their password.`}
         next="They can log in with their mobile number and the password you set. A short tour guides them on first login."
       />
-      {isAdmin && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          {(["devotee", "manager", "admin"] as const).map((r) => (
-            <Link key={r} href={`/people?role=${r}`} className={`btn-sm ${role === r ? "btn-primary" : "btn-secondary"}`}>{ROLE_LABEL[r]}s</Link>
-          ))}
-        </div>
-      )}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {(allowed as Role[]).map((r) => (
+          <Link key={r} href={`/people?role=${r}`} className={`btn-sm ${role === r ? "btn-primary" : "btn-secondary"}`}>{ROLE_LABEL[r]}s</Link>
+        ))}
+        {isAdmin && role !== "admin" && (
+          <span className="ml-auto flex flex-wrap items-center gap-2 text-sm">
+            <span className="font-semibold text-ink-700">Book Availability for all {label.toLowerCase()}:</span>
+            <form action={setAvailabilityForRole}><input type="hidden" name="role" value={role} /><input type="hidden" name="on" value="1" /><button className="btn-secondary btn-sm">Give access</button></form>
+            <form action={setAvailabilityForRole}><input type="hidden" name="role" value={role} /><input type="hidden" name="on" value="0" /><button className="btn-secondary btn-sm">Remove access</button></form>
+          </span>
+        )}
+      </div>
       <div className="grid gap-4 lg:grid-cols-5">
-        <Card title={`Add a ${role === "manager" ? "Dham Manager" : role === "admin" ? "Global Admin" : "Devotee"}`} className="lg:col-span-2 lg:self-start">
+        <Card title={`Add a ${role === "manager" ? "Sector Sevak" : role === "admin" ? "Chakra Sevak" : "Devotee"}`} className="lg:col-span-2 lg:self-start">
           {isAdmin && dhams.length === 0 && role !== "admin" ? (
-            <EmptyState icon="🛕" title="Add a Dham first." action={<Link href="/dhams" className="btn-primary btn-sm">Add a Dham</Link>}>Managers and devotees belong to a Dham.</EmptyState>
+            <EmptyState icon="🛕" title="Add a Dham first." action={<Link href="/dhams" className="btn-primary btn-sm">Add a Dham</Link>}>Sector Sevaks and devotees belong to a Dham.</EmptyState>
           ) : (
             <PersonForm key={role} role={role} dhams={dhams.map((d) => ({ id: d.id, name: d.name }))} isAdmin={isAdmin} />
           )}
@@ -67,19 +75,33 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
                 <li key={p.id} className="py-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="font-semibold">{p.name} {p.isActive ? null : <Badge>Inactive</Badge>}</p>
+                      <p className="flex flex-wrap items-center gap-1.5 font-semibold">
+                        {p.name}
+                        {p.isCoSevak && <Badge tone="purple" title={`An extra ${ROLE_LABEL[p.role]} who helps maintain the app`}>🛠 Co-Sevak</Badge>}
+                        {p.role !== "admin" && p.canSeeAvailability && <Badge tone="blue" title="May see Book Availability in all Dhams">👁 Availability</Badge>}
+                        {p.id === u.id && <Badge tone="green">You</Badge>}
+                        {p.isActive ? null : <Badge>Inactive</Badge>}
+                      </p>
                       <p className="text-sm text-ink-500">
                         📱 {p.phone ?? "—"}{p.dhamId ? ` · ${dn.get(p.dhamId)}` : ""}{p.email.endsWith(".local") ? "" : ` · ${p.email}`}
                       </p>
                     </div>
-                    {p.id !== u.id && (
-                      <form action={togglePerson}>
-                        <input type="hidden" name="id" value={p.id} />
-                        <button className="btn-secondary btn-sm">{p.isActive ? "Mark as Inactive" : "Mark as Active"}</button>
-                      </form>
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {isAdmin && p.role !== "admin" && (
+                        <form action={toggleAvailability}>
+                          <input type="hidden" name="id" value={p.id} />
+                          <button className="btn-secondary btn-sm">{p.canSeeAvailability ? "Remove Availability" : "Allow Availability"}</button>
+                        </form>
+                      )}
+                      {p.id !== u.id && mayManage(p) && (
+                        <form action={togglePerson}>
+                          <input type="hidden" name="id" value={p.id} />
+                          <button className="btn-secondary btn-sm">{p.isActive ? "Mark as Inactive" : "Mark as Active"}</button>
+                        </form>
+                      )}
+                    </div>
                   </div>
-                  {p.id !== u.id && (
+                  {p.id !== u.id && mayManage(p) && (
                     <details className="mt-2">
                       <summary className="tap cursor-pointer text-sm font-semibold text-brand-700">Edit · reset password · delete</summary>
                       <div className="mt-2 space-y-4 rounded-xl bg-stone-50 p-3">

@@ -7,6 +7,7 @@ import { devoteeBalances } from "@/lib/balances";
 import { allDhams } from "@/lib/lookups";
 import { fmtDate, fmtDateTime, inr } from "@/lib/format";
 import { METHOD_LABEL, MONEY_STATUS, moneyPosition } from "@/lib/terms";
+import { withQuery } from "@/components/tabs";
 import { Badge, Card, EmptyState, HelpTip, MoneyStatus, PageHeader, StatCard } from "@/components/ui";
 import { DownloadReport } from "@/components/download";
 import { FilterBar } from "@/components/filters";
@@ -46,15 +47,15 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
         next="When you mark money as received, the devotee is informed. If it doesn't match, send it back with a note."
       />
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Money collected" value={inr(sum.collected)} tone="green" hint="As reported in daily reports" />
-        <StatCard label="Money submitted" value={inr(sum.submitted)} tone="blue" />
-        <StatCard label="Confirmed as received" value={inr(sum.receivedConfirmed)} hint={toConfirm ? `${toConfirm} waiting for confirmation` : "All confirmed"} />
-        <StatCard label="Money yet to submit" value={inr(sum.pendingMoney)} tone={sum.pendingMoney ? "amber" : "green"} />
+        <StatCard label="Money collected" value={inr(sum.collected)} tone="green" hint="As reported in daily reports" href="#balances" />
+        <StatCard label="Money submitted" value={inr(sum.submitted)} tone="blue" href={withQuery("/money", { dham: sp.dham })} />
+        <StatCard label="Confirmed as received" value={inr(sum.receivedConfirmed)} href={withQuery("/money", { dham: sp.dham, status: toConfirm ? "submitted" : "received" })} hint={toConfirm ? `${toConfirm} waiting for confirmation` : "All confirmed"} />
+        <StatCard label="Money yet to submit" value={inr(sum.pendingMoney)} tone={sum.pendingMoney ? "amber" : "green"} href="#balances" />
       </div>
 
       <div className="mb-4"><DownloadReport kind="money" params={sp} /></div>
       <div className="grid gap-4 xl:grid-cols-5">
-        <Card title="Money submissions" className="xl:col-span-3">
+        <Card id="submissions" title="Money submissions" className="xl:col-span-3">
           <div className="mb-4">
             <FilterBar
               action="/money"
@@ -95,7 +96,7 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
             </ul>
           )}
         </Card>
-        <Card title="Money position of each devotee" subtitle={<>Collected − submitted = yet to submit<HelpTip>“Collected” comes from daily reports. “Submitted” is what the devotee has handed over (entries sent back as not matching are not counted).</HelpTip></>} className="xl:col-span-2">
+        <Card id="balances" title="Money position of each devotee" subtitle={<>Collected − submitted = yet to submit<HelpTip>“Collected” comes from daily reports. “Submitted” is what the devotee has handed over (entries sent back as not matching are not counted).</HelpTip></>} className="xl:col-span-2">
           {balances.length === 0 ? (
             <p className="text-sm text-ink-500">No devotees yet.</p>
           ) : (

@@ -19,15 +19,15 @@ export default async function DhamsHierarchy() {
     <>
       <PageHeader
         title="Dhams & Devotees"
-        crumbs={[{ label: "Global Admin", href: "/dashboard" }, { label: "Dhams" }]}
+        crumbs={[{ label: "Chakra Sevak", href: "/dashboard" }, { label: "Dhams" }]}
         doHere="Tap a Dham to see its devotees and the books on its shelf."
         next="Then tap a devotee to see their books, every sale and full history."
       />
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Books at Dhams (shelf)" value={num(t.available)} tone="blue" />
-        <StatCard label="With devotees now" value={num(t.withDevotees)} tone="purple" />
-        <StatCard label="Sold (approved)" value={num(t.sold)} tone="green" hint={inr(t.amount)} />
-        <StatCard label="Received by Dhams" value={num(t.received)} />
+        <StatCard label="Books at Dhams (shelf)" value={num(t.available)} tone="blue" href="/availability?show=shelf&view=dham" hint="Tap: book names & counts" />
+        <StatCard label="With devotees now" value={num(t.withDevotees)} tone="purple" href="/availability?show=devotees" hint="Tap: who has which book" />
+        <StatCard label="Sold (approved)" value={num(t.sold)} tone="green" hint={inr(t.amount)} href="/distribution" />
+        <StatCard label="Received by Dhams" value={num(t.received)} href="/stock/history?kind=assign_dham" />
       </div>
 
       {dhams.length === 0 ? (

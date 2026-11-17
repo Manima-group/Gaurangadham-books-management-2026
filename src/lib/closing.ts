@@ -15,7 +15,7 @@ export async function computeClosing(dhamId: number, date: string) {
   ]);
   const openingQty = total(opening);
   const closingQty = total(closing);
-  const expectedClosing = openingQty + moves.received - moves.sold - moves.damaged;
+  const expectedClosing = openingQty + moves.received - moves.sold - moves.damaged - moves.transfer_out;
 
   const reports = await db
     .select({
@@ -72,7 +72,7 @@ export async function computeClosing(dhamId: number, date: string) {
   if (notReported.length)
     differences.push({ severity: "info", text: `${notReported.length} devotee(s) have not submitted a report: ${notReported.map((d) => d.name).join(", ")}.` });
   if (Number(cum.unconfirmed))
-    differences.push({ severity: "info", text: `${cum.unconfirmed} money submission(s) are not yet confirmed as received by the Manager.` });
+    differences.push({ severity: "info", text: `${cum.unconfirmed} money submission(s) are not yet confirmed as received by the Sector Sevak.` });
 
   const [closed] = await db
     .select()
@@ -87,6 +87,7 @@ export async function computeClosing(dhamId: number, date: string) {
       sold: moves.sold,
       returned: moves.returned,
       damaged: moves.damaged,
+      transferredOut: moves.transfer_out,
       closing: closingQty,
       expectedClosing,
       pendingSold: waiting.reduce((a, r) => a + r.totalSold, 0),

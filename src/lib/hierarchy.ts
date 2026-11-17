@@ -81,7 +81,7 @@ export async function dhamOverview(onlyDhamId?: number): Promise<DhamOverview[]>
     from dham d
     left join (
       select m.dham_id,
-        sum(m.qty) filter (where m.kind in ('received','assign_dham') and m.to_holder = 'dham:' || m.dham_id) as received,
+        sum(m.qty) filter (where m.kind in ('received','assign_dham','transfer_in') and m.to_holder = 'dham:' || m.dham_id) as received,
         sum(m.qty) filter (where m.kind = 'assign_devotee') as allocated,
         sum(m.qty) filter (where m.kind = 'sold') as sold,
         sum(m.qty) filter (where m.kind = 'returned') as returned,

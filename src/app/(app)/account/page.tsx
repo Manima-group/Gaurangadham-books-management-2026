@@ -14,11 +14,11 @@ export default async function AccountPage() {
         <Card title="My details">
           <dl className="space-y-2 text-sm">
             <div><dt className="text-ink-500">Name</dt><dd className="font-semibold">{u.name}</dd></div>
-            <div><dt className="text-ink-500">Role</dt><dd className="font-semibold">{ROLE_LABEL[u.role]}</dd></div>
+            <div><dt className="text-ink-500">Role</dt><dd className="font-semibold">{ROLE_LABEL[u.role]}{u.isCoSevak ? " · 🛠 Co-Sevak" : ""}</dd></div>
             <div><dt className="text-ink-500">Dham</dt><dd className="font-semibold">{u.dhamName ?? (u.role === "admin" ? "All Dhams" : "—")}</dd></div>
             <div><dt className="text-ink-500">Mobile number (for login)</dt><dd className="font-semibold">{u.phone ?? "—"}</dd></div>
           </dl>
-          <p className="mt-3 text-xs text-ink-500">To change these details, contact your {u.role === "devotee" ? "Dham Manager" : "Admin"}.</p>
+          <p className="mt-3 text-xs text-ink-500">To change these details, contact your {u.role === "devotee" ? "Sector Sevak" : "Chakra Sevak"}.</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link href="/welcome?again=1" className="btn-secondary btn-sm">🧭 Show the guided tour again</Link>
             <a href="/dashboard?intro=1" className="btn-secondary btn-sm">🎬 Play the intro again</a>

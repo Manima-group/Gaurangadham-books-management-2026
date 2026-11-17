@@ -37,7 +37,7 @@ export async function AdminDashboard() {
       {!setup.complete && (
         <div className="mb-6">
           <Alert tone="purple" title={`Setup is ${setup.done} of ${setup.total} steps complete`}>
-            Finish the setup so Managers and Devotees can start working.{" "}
+            Finish the setup so Sector Sevaks and Devotees can start working.{" "}
             <Link href="/setup" className="font-semibold underline">Continue setup →</Link>
           </Alert>
         </div>
@@ -52,7 +52,7 @@ export async function AdminDashboard() {
         <StatCard icon="🤲" label="Books distributed" value={num(o.distributed)} tone="purple" href="/stock/history" hint="Given to devotees so far" />
         <StatCard icon="📖" label="Books sold" value={num(o.soldApproved)} tone="green" href="/monitor" hint={o.soldPending ? `+ ${num(o.soldPending)} in reports being reviewed` : "From approved reports"} />
         <StatCard icon="🪙" label="Money collected" value={inr(o.collected)} tone="green" href="/money" hint="As reported by devotees" />
-        <StatCard icon="🏦" label="Money submitted" value={inr(o.submitted)} tone="blue" href="/money" hint={`${inr(o.receivedConfirmed)} confirmed by Managers`} />
+        <StatCard icon="🏦" label="Money submitted" value={inr(o.submitted)} tone="blue" href="/money" hint={`${inr(o.receivedConfirmed)} confirmed by Sector Sevaks`} />
         <StatCard icon="⏳" label="Money yet to submit" value={inr(o.pendingMoney)} tone={o.pendingMoney > 0 ? "amber" : "green"} href="/money" hint="Collected but not yet handed over" />
         <StatCard icon="📝" label="Reports waiting for review" value={num(o.reportsAwaiting)} tone={o.reportsAwaiting ? "red" : "gray"} href="/reports?status=submitted" hint={o.reportsAwaiting ? "Tap to review" : "All caught up"} />
       </div>
@@ -62,7 +62,7 @@ export async function AdminDashboard() {
           { href: "/dhams", label: "Add a Dham", icon: "🛕" },
           { href: "/books", label: "Add a Book", icon: "📚" },
           { href: "/books#prices", label: "Update Book Prices", icon: "🏷️" },
-          { href: "/people?role=manager", label: "Add a Manager", icon: "🧑‍💼" },
+          { href: "/people?role=manager", label: "Add a Sector Sevak", icon: "🧑‍💼" },
           { href: "/people?role=devotee", label: "Add a Devotee", icon: "🙋" },
           { href: "/drives", label: "Create a Distribution Drive", icon: "🚩" },
           { href: "/stock/receive", label: "Receive Books", icon: "📥" },

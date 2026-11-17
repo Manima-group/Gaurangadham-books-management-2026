@@ -143,6 +143,7 @@ export async function closingExport(u: AppUser, p: P): Promise<ReportSpec> {
     kv("− Books sold", f.book.sold, "int"),
     kv("Books returned to Dham", f.book.returned, "int"),
     kv("− Damaged / lost", f.book.damaged, "int"),
+    kv("− Sent to other Dhams", f.book.transferredOut, "int"),
     kv("= Closing books", f.book.closing, "int"),
   ];
   const money = [

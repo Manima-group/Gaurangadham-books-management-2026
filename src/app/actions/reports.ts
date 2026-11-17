@@ -20,14 +20,14 @@ type Slot = (typeof SLOTS)[number];
 
 export async function saveSalesReport(_: ActionState, fd: FormData): Promise<ActionState> {
   const u = await requireUser("devotee", "manager");
-  if (!u.dhamId) return fail("You are not linked to a Dham yet.", "Please ask your Admin to add you to a Dham.");
+  if (!u.dhamId) return fail("You are not linked to a Dham yet.", "Please ask your Chakra Sevak to add you to a Dham.");
   const dhamId = u.dhamId;
   const intent = fd.get("intent") === "draft" ? "draft" : "submit";
   const date = String(fd.get("reportDate") || todayIST());
   const today = todayIST();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today)
     return fail("Please choose a valid date.", "You can't add sales for a future date.");
-  if (date < addDays(today, -7)) return fail("This date is more than 7 days ago.", "Please ask your Dham Manager to help with older days.");
+  if (date < addDays(today, -7)) return fail("This date is more than 7 days ago.", "Please ask your Sector Sevak to help with older days.");
 
   const books = await db.select().from(schema.book);
   const byId = new Map(books.map((b) => [b.id, b]));
@@ -81,8 +81,8 @@ export async function saveSalesReport(_: ActionState, fd: FormData): Promise<Act
       return fail(
         `Your sales for ${fmtDate(date)} were already ${existing.status === "approved" ? "approved" : "sent"}.`,
         existing.status === "submitted"
-          ? "To change them, delete that report from My Reports and add it again, or ask your Manager to request a correction."
-          : "To change them, ask your Dham Manager.",
+          ? "To change them, delete that report from My Reports and add it again, or ask your Sector Sevak to request a correction."
+          : "To change them, ask your Sector Sevak.",
       );
 
     const hold = await holderStock(H.devotee(u.id), tx);
@@ -132,7 +132,7 @@ export async function saveSalesReport(_: ActionState, fd: FormData): Promise<Act
       submittedAt: status === "draft" ? null : new Date(),
       reviewedBy: selfApprove ? u.id : null,
       reviewedAt: selfApprove ? new Date() : null,
-      reviewNote: selfApprove ? "Recorded by the Dham Manager (own distribution)" : null,
+      reviewNote: selfApprove ? "Recorded by the Sector Sevak (own distribution)" : null,
       updatedAt: new Date(),
     };
     let reportId: number;
@@ -188,7 +188,7 @@ export async function saveSalesReport(_: ActionState, fd: FormData): Promise<Act
   return ok(
     `Thank you! Sales for ${fmtDate(date)} saved. 🙏`,
     `${num(totalSold)} book${totalSold === 1 ? "" : "s"} at ${places} place${places === 1 ? "" : "s"}, worth ${inr(salesPaise)}. ${
-      status === "approved" ? "Your stock is updated." : "Your Dham Manager will review it."
+      status === "approved" ? "Your stock is updated." : "Your Sector Sevak will review it."
     } You can hand over the money any time — there's no rush.`,
     { label: "See my books", href: "/my/books" },
   );
@@ -275,7 +275,7 @@ export async function deleteReport(_: ActionState, fd: FormData): Promise<Action
   const canManage = u.role === "admin" || (u.role === "manager" && r.dhamId === u.dhamId);
   if (!own && !canManage) return fail("You can't delete this report.");
   if (own && !canManage && r.status === "approved")
-    return fail("This report is already approved.", "Ask your Dham Manager if it needs to be removed.");
+    return fail("This report is already approved.", "Ask your Sector Sevak if it needs to be removed.");
   const err = await db.transaction((tx) => deleteReportTx(tx, r, u.id));
   if (err) return fail("This report can't be deleted right now.", err);
   const [dev] = await db.select({ name: schema.user.name }).from(schema.user).where(eq(schema.user.id, r.devoteeId));

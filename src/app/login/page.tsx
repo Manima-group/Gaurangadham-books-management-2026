@@ -62,12 +62,12 @@ export default async function LoginPage() {
           <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-lift sm:p-8">
             <h2 className="font-display text-2xl font-extrabold text-ink-900">Welcome back 🙏</h2>
             <p className="mb-6 mt-1.5 text-sm leading-relaxed text-ink-500">
-              Log in with the mobile number or email your Admin or Dham Manager registered for you.
+              Log in with the mobile number or email your Chakra Sevak or Sector Sevak registered for you.
             </p>
             <LoginForm />
           </div>
           <p className="mt-5 text-center text-sm text-ink-500">
-            New here? Your Dham Manager or Admin creates your account and gives you your password.
+            New here? Your Sector Sevak or Chakra Sevak creates your account and gives you your password.
           </p>
           <a href={MANIMA_URL} target="_blank" rel="noopener noreferrer" className="mt-8 flex items-center justify-center gap-2 text-xs text-ink-500 lg:hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}

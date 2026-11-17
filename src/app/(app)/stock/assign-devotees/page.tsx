@@ -47,7 +47,7 @@ export default async function AssignDevoteesPage({ searchParams }: { searchParam
                 <Field label="Devotee" htmlFor="devotee">
                   <select id="devotee" name="devotee" defaultValue={sp.devotee ?? ""} className="field-input">
                     <option value="">Choose a devotee…</option>
-                    {devotees.map((d) => <option key={d.id} value={d.id}>{d.name}{d.id === u.id ? " — me (to distribute myself)" : d.role === "manager" ? " (Manager)" : ""}</option>)}
+                    {devotees.map((d) => <option key={d.id} value={d.id}>{d.name}{d.id === u.id ? " — me (to distribute myself)" : d.role === "manager" ? " (Sector Sevak)" : ""}</option>)}
                   </select>
                 </Field>
               )
@@ -82,7 +82,7 @@ export default async function AssignDevoteesPage({ searchParams }: { searchParam
               targetLabel={dev.name}
               verb="give"
               confirmLabel={`Confirm — Give to ${dev.name.split(" ")[0]}`}
-              emptyText={<EmptyState title="The Dham store has no books to give." action={<LinkButton href="/stock/receive">Receive Books</LinkButton>}>Receive books at the Dham first, or ask the Admin to send books.</EmptyState>}
+              emptyText={<EmptyState title="The Dham store has no books to give." action={<LinkButton href="/stock/receive">Receive Books</LinkButton>}>Receive books at the Dham first, or ask the Chakra Sevak to send books.</EmptyState>}
             />
           )}
         </Card>

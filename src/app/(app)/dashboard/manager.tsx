@@ -12,7 +12,7 @@ import { dhamWise } from "@/lib/distribution";
 
 export async function ManagerDashboard({ user }: { user: AppUser }) {
   if (!user.dhamId)
-    return <Alert tone="amber" title="You are not linked to a Dham yet.">Please ask the Admin to assign you to a Dham.</Alert>;
+    return <Alert tone="amber" title="You are not linked to a Dham yet.">Please ask the Chakra Sevak to assign you to a Dham.</Alert>;
   const dhamId = user.dhamId;
   const today = todayIST();
   const [dw, o, store, chart, devotees, todays, waiting, [unconfirmed]] = await Promise.all([

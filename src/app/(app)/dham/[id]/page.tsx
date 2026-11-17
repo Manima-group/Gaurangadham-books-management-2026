@@ -24,8 +24,8 @@ export default async function DhamDetail({ params, searchParams }: { params: Pro
   const listState = { q: sp.q, sort: sp.sort, dir: sp.dir, has: sp.has, page: sp.page };
   const isAdmin = u.role === "admin";
   const crumbs = isAdmin
-    ? [{ label: "Global Admin", href: "/dashboard" }, { label: "Dhams", href: "/dham" }, { label: dham.name }]
-    : [{ label: "Dham Manager", href: "/dashboard" }, { label: "My Dham" }];
+    ? [{ label: "Chakra Sevak", href: "/dashboard" }, { label: "Dhams", href: "/dham" }, { label: dham.name }]
+    : [{ label: "Sector Sevak", href: "/dashboard" }, { label: "My Dham" }];
 
   return (
     <>
@@ -35,10 +35,10 @@ export default async function DhamDetail({ params, searchParams }: { params: Pro
         doHere={tab === "devotees" ? "Search or sort the list, then tap a devotee to see their books, sales and history." : "Book-wise stock of this Dham: what came in, what is on the shelf, with devotees and sold."}
       />
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="On the Dham shelf" value={num(dham.available)} tone="blue" />
-        <StatCard label="With devotees now" value={num(dham.withDevotees)} tone="purple" />
-        <StatCard label="Sold (approved)" value={num(dham.sold)} tone="green" hint={inr(dham.amount)} />
-        <StatCard label="Received by Dham" value={num(dham.received)} hint={`Given to devotees ${num(dham.allocated)}`} />
+        <StatCard label="On the Dham shelf" value={num(dham.available)} tone="blue" href={`/availability?dham=${id}&show=shelf&view=dham`} hint="Tap: book names & counts" />
+        <StatCard label="With devotees now" value={num(dham.withDevotees)} tone="purple" href={`/availability?dham=${id}&show=devotees`} hint="Tap: who has which book" />
+        <StatCard label="Sold (approved)" value={num(dham.sold)} tone="green" hint={inr(dham.amount)} href={`/distribution/${id}`} />
+        <StatCard label="Received by Dham" value={num(dham.received)} href={`/stock/history?dham=${id}`} hint={`Given to devotees ${num(dham.allocated)}`} />
       </div>
       <TabLinks
         label="Dham sections"
@@ -93,7 +93,7 @@ async function Devotees({ id, base, sp }: { id: number; base: string; sp: SP }) 
 
       {res.rows.length === 0 ? (
         <EmptyState icon="🙏" title={sp.q ? "No devotee matches this search." : "No devotees here yet."}>
-          {sp.q ? "Try another name or clear the search." : "Add devotees in Settings → Managers & Devotees."}
+          {sp.q ? "Try another name or clear the search." : "Add devotees in Settings → Sector Sevaks & Devotees."}
         </EmptyState>
       ) : (
         <>
@@ -103,7 +103,7 @@ async function Devotees({ id, base, sp }: { id: number; base: string; sp: SP }) 
               <li key={d.id}>
                 <Link href={withQuery(`${base}/devotee/${d.id}`, { ret })} data-testid="devotee-row" className="block rounded-xl border border-stone-200/80 p-3 transition hover:border-brand-300 hover:bg-brand-50/40">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="truncate font-semibold">{d.name} {d.role === "manager" && <Badge tone="blue">Manager</Badge>}</p>
+                    <p className="truncate font-semibold">{d.name} {d.role === "manager" && <Badge tone="blue">Sector Sevak</Badge>}</p>
                     <span className="text-brand-700" aria-hidden>›</span>
                   </div>
                   <p className="mt-1 grid grid-cols-4 gap-1 text-center text-[11px] text-ink-500">
@@ -138,7 +138,7 @@ async function Devotees({ id, base, sp }: { id: number; base: string; sp: SP }) 
                     <tr key={d.id} className="border-b border-stone-100 hover:bg-brand-50/30">
                       <td className="py-2.5 pr-3">
                         <Link href={href} data-testid="devotee-row" className="font-semibold text-brand-700 hover:underline">{d.name}</Link>
-                        {d.role === "manager" && <> <Badge tone="blue">Manager</Badge></>}
+                        {d.role === "manager" && <> <Badge tone="blue">Sector Sevak</Badge></>}
                         {d.phone && <span className="block text-xs text-ink-500">{d.phone}</span>}
                       </td>
                       <td className="px-2 text-right tabular-nums">{num(d.allocated)}</td>

@@ -23,12 +23,17 @@ export function PersonForm({ role, dhams, isAdmin }: { role: string; dhams: { id
             <Field label="Role" htmlFor="role" help={r === "manager" ? "Runs one Dham: receives books, gives them to devotees, reviews reports." : r === "admin" ? "Sees and manages everything." : "Distributes books and reports daily sales from their phone."}>
               <select id="role" name="role" value={r} onChange={(e) => setR(e.target.value)} className="field-input">
                 <option value="devotee">Devotee</option>
-                <option value="manager">Dham Manager</option>
-                <option value="admin">Global Admin</option>
+                <option value="manager">Sector Sevak</option>
+                <option value="admin">Chakra Sevak</option>
               </select>
             </Field>
           ) : (
-            <input type="hidden" name="role" value="devotee" />
+            <Field label="Add as" htmlFor="role" help={r === "manager" ? "A Co-Sevak helps you run this Dham. They get the same screens as you and show a Co-Sevak badge." : "Distributes books and reports daily sales from their phone."}>
+              <select id="role" name="role" value={r} onChange={(e) => setR(e.target.value)} className="field-input">
+                <option value="devotee">Devotee</option>
+                <option value="manager">Sector Sevak (Co-Sevak)</option>
+              </select>
+            </Field>
           )}
           <Field label="Full name" htmlFor="pname" error={s.fieldErrors?.name}>
             <input id="pname" name="name" className="field-input" autoComplete="off" />
@@ -50,7 +55,22 @@ export function PersonForm({ role, dhams, isAdmin }: { role: string; dhams: { id
           <Field label="Starting password" htmlFor="password" error={s.fieldErrors?.password} help="Share this with them personally. They can change it later in My Account.">
             <input id="password" name="password" value={pw} onChange={(e) => setPw(e.target.value)} className="field-input font-mono" autoComplete="off" />
           </Field>
-          <SubmitButton>{r === "manager" ? "Add Manager" : r === "admin" ? "Add Admin" : "Add Devotee"}</SubmitButton>
+          {isAdmin && r === "manager" && (
+            <label className="flex items-center gap-3 text-sm">
+              <input type="checkbox" name="coSevak" className="h-9 w-9 shrink-0 accent-brand-600" />
+              <span><b>Co-Sevak</b> — an extra Sector Sevak who helps maintain this Dham (shown with a badge).</span>
+            </label>
+          )}
+          {isAdmin && r === "admin" && (
+            <p className="rounded-lg bg-violet-50 px-3 py-2 text-sm text-violet-900">A Chakra Sevak you add is shown as <b>Co-Sevak</b>, so everyone can tell the main Chakra Sevak apart.</p>
+          )}
+          {isAdmin && r !== "admin" && (
+            <label className="flex items-center gap-3 text-sm">
+              <input type="checkbox" name="canSeeAvailability" className="h-9 w-9 shrink-0 accent-brand-600" />
+              <span><b>Can see Book Availability</b> in all Dhams (which Dham and which devotee has each book, with mobile numbers).</span>
+            </label>
+          )}
+          <SubmitButton>{r === "manager" ? "Add Sector Sevak" : r === "admin" ? "Add Chakra Sevak" : "Add Devotee"}</SubmitButton>
         </>
       )}
     </ActionForm>
@@ -103,8 +123,8 @@ export function EditPersonForm({
               <Field label="Role" htmlFor={`r-${p.id}`}>
                 <select id={`r-${p.id}`} name="role" value={r} onChange={(e) => setR(e.target.value)} className="field-input">
                   <option value="devotee">Devotee</option>
-                  <option value="manager">Dham Manager</option>
-                  <option value="admin">Global Admin</option>
+                  <option value="manager">Sector Sevak</option>
+                  <option value="admin">Chakra Sevak</option>
                 </select>
               </Field>
               {r !== "admin" && (

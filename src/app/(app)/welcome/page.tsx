@@ -4,14 +4,14 @@ import { Tour, type TourStep } from "./tour";
 
 const STEPS: Record<string, TourStep[]> = {
   admin: [
-    { icon: "🙏", title: "Welcome, Admin", body: "You see everything across all Dhams: books, sales and money. This short tour shows how the app works." },
-    { icon: "✅", title: "First, finish the setup", body: "Add your organisation, Dhams, the book list with prices, a Distribution Drive, Dham Managers and Devotees. The Setup Progress page shows what is done and what remains." },
+    { icon: "🙏", title: "Welcome, Chakra Sevak", body: "You see everything across all Dhams: books, sales and money. This short tour shows how the app works." },
+    { icon: "✅", title: "First, finish the setup", body: "Add your organisation, Dhams, the book list with prices, a Distribution Drive, Sector Sevaks and Devotees. The Setup Progress page shows what is done and what remains." },
     { icon: "📦", title: "Receive books and send them to Dhams", body: "When books arrive, use Receive Books. Then use Assign Books to Dham to send copies to each Dham. Stock updates automatically." },
-    { icon: "📝", title: "Devotees report sales daily", body: "Devotees record how many books they sold. The app calculates the money. Managers review each report and approve it." },
+    { icon: "📝", title: "Devotees report sales daily", body: "Devotees record how many books they sold. The app calculates the money. Sector Sevaks review each report and approve it." },
     { icon: "📊", title: "Watch everything from Home", body: "Your Home page shows books available, books sold, money collected, money yet to submit, reports waiting for review and Dhams that need attention." },
   ],
   manager: [
-    { icon: "🙏", title: "Welcome, Dham Manager", body: "You look after the books and money of your Dham. You will only ever see your own Dham's information." },
+    { icon: "🙏", title: "Welcome, Sector Sevak", body: "You look after the books and money of your Dham. You will only ever see your own Dham's information." },
     { icon: "📦", title: "Receive books", body: "When books arrive at your Dham, record them with Receive Books. They are added to your Dham's stock." },
     { icon: "🤲", title: "Give books to devotees", body: "Use Assign Books to give copies to each devotee. They see them on their phone right away." },
     { icon: "📝", title: "Review daily reports", body: "Every evening devotees send their sales. You get a notification. Check the figures and choose Approve, Request Correction or Reject." },
@@ -19,10 +19,10 @@ const STEPS: Record<string, TourStep[]> = {
   ],
   devotee: [
     { icon: "🙏", title: "Hare Krishna! Welcome", body: "This app helps you keep track of the books given to you, the books you sell and the money you collect. It only takes a few minutes a day." },
-    { icon: "📚", title: "See your books", body: "My Books shows every book your Manager gave you, how many you sold and how many you still have." },
+    { icon: "📚", title: "See your books", body: "My Books shows every book your Sector Sevak gave you, how many you sold and how many you still have." },
     { icon: "📝", title: "Every evening: Submit Today's Sales", body: "Just type how many copies of each book you sold. The app calculates the amount for you — no maths needed." },
-    { icon: "💰", title: "Hand over the money", body: "When you give money to your Manager (cash, UPI or bank), record it in Submit Money. You can submit in parts." },
-    { icon: "🔔", title: "You'll be told what happens", body: "When your Manager approves your report or receives your money, you get a notification on the bell icon at the top." },
+    { icon: "💰", title: "Hand over the money", body: "When you give money to your Sector Sevak (cash, UPI or bank), record it in Submit Money. You can submit in parts." },
+    { icon: "🔔", title: "You'll be told what happens", body: "When your Sector Sevak approves your report or receives your money, you get a notification on the bell icon at the top." },
   ],
 };
 

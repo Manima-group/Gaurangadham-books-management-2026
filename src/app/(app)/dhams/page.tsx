@@ -18,7 +18,7 @@ export default async function DhamsPage() {
         title="Dhams"
         crumbs={[{ label: "Home", href: "/dashboard" }, { label: "Settings" }, { label: "Dhams" }]}
         doHere="Add each Dham where books are distributed. You can rename a Dham or mark it as inactive."
-        next="After adding a Dham, add a Dham Manager for it and send it books."
+        next="After adding a Dham, add a Sector Sevak for it and send it books."
       />
       <div className="grid gap-4 lg:grid-cols-5">
         <Card title="Add a Dham" className="lg:col-span-2 lg:self-start"><DhamForm /></Card>

@@ -16,7 +16,7 @@ export function CloseDayForm({ dhamId, date, needsNote }: { dhamId: number; date
             htmlFor="note"
             optional={!needsNote}
             error={s.fieldErrors?.note}
-            help={needsNote ? "Required. Figures are never adjusted automatically — your explanation is saved with the day's record and shared with the Admin." : undefined}
+            help={needsNote ? "Required. Figures are never adjusted automatically — your explanation is saved with the day's record and shared with the Chakra Sevak." : undefined}
           >
             <textarea id="note" name="note" rows={3} className="field-input" />
           </Field>

@@ -15,7 +15,7 @@ export default async function SetupPage() {
       <PageHeader
         title="Setup Progress"
         crumbs={[{ label: "Home", href: "/dashboard" }, { label: "Setup Progress" }]}
-        doHere="Complete these steps in order so Managers and Devotees can start using the app."
+        doHere="Complete these steps in order so Sector Sevaks and Devotees can start using the app."
         next={next ? `Next step: ${next.title}. Tap “${next.action}”.` : "Setup is complete! Receive books and send them to Dhams."}
       />
       <Card className="mb-4">

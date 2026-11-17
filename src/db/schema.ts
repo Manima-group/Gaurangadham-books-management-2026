@@ -37,6 +37,12 @@ export const user = pgTable("user", {
   phone: text("phone").unique(),
   isActive: boolean("is_active").notNull().default(true),
   onboarded: boolean("onboarded").notNull().default(false),
+  /** An extra Chakra/Sector Sevak added to help maintain the app (shown with a "Co-Sevak" badge). */
+  isCoSevak: boolean("is_co_sevak").notNull().default(false),
+  /** Who added this person (user id). */
+  addedBy: text("added_by"),
+  /** Given by a Chakra Sevak: may see Book Availability across all Dhams. */
+  canSeeAvailability: boolean("can_see_availability").notNull().default(false),
 });
 
 export const session = pgTable("session", {
@@ -149,7 +155,7 @@ export const stockMovement = pgTable(
   {
     id: serial("id").primaryKey(),
     kind: text("kind", {
-      enum: ["received", "assign_dham", "assign_devotee", "sold", "returned", "damaged", "correction"],
+      enum: ["received", "assign_dham", "assign_devotee", "sold", "returned", "damaged", "correction", "transfer_out", "transfer_in"],
     }).notNull(),
     bookId: integer("book_id").notNull(),
     qty: integer("qty").notNull(),
@@ -351,4 +357,44 @@ export const stockCheckpointBalance = pgTable(
     qty: integer("qty").notNull(),
   },
   (t) => [index("cpb_cp_holder_idx").on(t.checkpointId, t.holder), index("cpb_cp_dham_idx").on(t.checkpointId, t.dhamId)],
+);
+
+/**
+ * Dham → Dham book transfer. The requesting Dham asks; the sending Dham approves and sends;
+ * the requesting Dham confirms receipt. Stock leaves the sender at "sent" (held as
+ * `transit:<id>`) and reaches the requester at "received".
+ */
+export const dhamTransfer = pgTable(
+  "dham_transfer",
+  {
+    id: serial("id").primaryKey(),
+    fromDhamId: integer("from_dham_id").notNull(), // sends the books
+    toDhamId: integer("to_dham_id").notNull(), // asked for them
+    status: text("status", { enum: ["requested", "approved", "sent", "received", "declined", "cancelled"] }).notNull().default("requested"),
+    note: text("note"),
+    reply: text("reply"),
+    requestedBy: text("requested_by").notNull(),
+    requestedAt: timestamp("requested_at").notNull().defaultNow(),
+    approvedBy: text("approved_by"),
+    approvedAt: timestamp("approved_at"),
+    sentBy: text("sent_by"),
+    sentAt: timestamp("sent_at"),
+    receivedBy: text("received_by"),
+    receivedAt: timestamp("received_at"),
+    closedBy: text("closed_by"), // declined / cancelled by
+    closedAt: timestamp("closed_at"),
+  },
+  (t) => [index("dt_from_idx").on(t.fromDhamId, t.status), index("dt_to_idx").on(t.toDhamId, t.status)],
+);
+
+export const dhamTransferLine = pgTable(
+  "dham_transfer_line",
+  {
+    id: serial("id").primaryKey(),
+    transferId: integer("transfer_id").notNull(),
+    bookId: integer("book_id").notNull(),
+    requestedQty: integer("requested_qty").notNull(),
+    sentQty: integer("sent_qty"), // set when approved; may be less than asked
+  },
+  (t) => [index("dtl_transfer_idx").on(t.transferId)],
 );

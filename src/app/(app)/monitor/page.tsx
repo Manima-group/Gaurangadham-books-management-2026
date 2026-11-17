@@ -52,12 +52,12 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
         {filtered && <p className="mt-3 text-sm text-ink-500">Showing filtered figures. Book stock always shows the current position.</p>}
       </Card>
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label={`Sales on ${fmtDate(end)}`} value={inr(todaySales?.amount ?? 0)} tone="green" hint={`${num(todaySales?.qty ?? 0)} books`} />
-        <StatCard label="Books distributed" value={num(moves.assign_devotee - moves.returned)} tone="purple" hint="Given to devotees" />
-        <StatCard label="Books sold" value={num(money.soldApproved)} tone="green" hint={money.soldPending ? `+ ${num(money.soldPending)} being reviewed` : undefined} />
-        <StatCard label="Books available" value={num(total(stock))} tone="blue" />
-        <StatCard label="Money collected" value={inr(money.collected)} tone="green" />
-        <StatCard label="Money submitted" value={inr(money.submitted)} tone="blue" />
+        <StatCard label={`Sales on ${fmtDate(end)}`} value={inr(todaySales?.amount ?? 0)} tone="green" hint={`${num(todaySales?.qty ?? 0)} books`} href={`/reports?from=${end}&to=${end}`} />
+        <StatCard label="Books distributed" value={num(moves.assign_devotee - moves.returned)} tone="purple" hint="Given to devotees" href="/stock/history?kind=assign_devotee" />
+        <StatCard label="Books sold" value={num(money.soldApproved)} tone="green" href="/distribution" hint={money.soldPending ? `+ ${num(money.soldPending)} being reviewed` : undefined} />
+        <StatCard label="Books available" value={num(total(stock))} tone="blue" href="/availability?view=dham" />
+        <StatCard label="Money collected" value={inr(money.collected)} tone="green" href="/money#balances" />
+        <StatCard label="Money submitted" value={inr(money.submitted)} tone="blue" href="/money" />
         <StatCard label="Money yet to submit" value={inr(money.pendingMoney)} tone={money.pendingMoney ? "amber" : "green"} href="/pending" />
         <StatCard label="Reports waiting for review" value={num(money.reportsAwaiting)} tone={money.reportsAwaiting ? "red" : "gray"} href="/reports?status=submitted" />
       </div>

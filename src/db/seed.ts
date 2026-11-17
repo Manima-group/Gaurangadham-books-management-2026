@@ -249,8 +249,8 @@ async function main() {
 Demo data created ✔
 
 Log in with:
-  Global Admin   admin@gaurangadham.org  (or 9000000001) / admin123
-  Dham Manager   9000000002  (Hyderabad Dham)            / manager123
+  Chakra Sevak   admin@gaurangadham.org  (or 9000000001) / admin123
+  Sector Sevak   9000000002  (Hyderabad Dham)            / manager123
   Devotee        9000000011  (Govinda Sharma, Hyderabad) / devotee123
 `);
   void vjw;

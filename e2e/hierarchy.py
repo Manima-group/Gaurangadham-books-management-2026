@@ -65,12 +65,12 @@ def ledger(holder):
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium-1243/chrome-linux64/chrome")
 
-    # ---------------- Global Admin: Level 1 → 2 → 3
+    # ---------------- Chakra Sevak: Level 1 → 2 → 3
     a = login(b, "9000000001", "admin123")
     a.goto(B + "/dham"); settle(a)
     cards = a.locator("[data-testid=dham-card]")
     check("L1: one card per Dham", cards.count() == int(q("select count(*) from dham")))
-    check("L1: breadcrumb Global Admin / Dhams", a.get_by_role("navigation", name="You are here").inner_text().replace("\n", " ").strip().startswith("Global Admin"))
+    check("L1: breadcrumb Chakra Sevak / Dhams", a.get_by_role("navigation", name="You are here").inner_text().replace("\n", " ").strip().startswith("Chakra Sevak"))
     a.locator("[data-testid=dham-card]", has_text="Hyderabad Dham").click()
     a.wait_for_url(re.compile(f"/dham/{HYD}$")); settle(a)
     check("L2: heading 'Devotees — Hyderabad Dham'", a.get_by_role("heading", name="Devotees — Hyderabad Dham").count() == 1)
@@ -99,7 +99,7 @@ with sync_playwright() as p:
     a.locator("table [data-testid=devotee-row]", has_text=DEV_NAME).click()
     a.wait_for_url(re.compile(f"/dham/{HYD}/devotee/{DEV}")); settle(a)
     crumbs = a.get_by_role("navigation", name="You are here").inner_text().replace("\n", " ")
-    check("L3: breadcrumb Global Admin › Dhams › Hyderabad Dham › Devotees › name", all(x in crumbs for x in ["Global Admin", "Dhams", "Hyderabad Dham", "Devotees", DEV_NAME]), crumbs)
+    check("L3: breadcrumb Chakra Sevak › Dhams › Hyderabad Dham › Devotees › name", all(x in crumbs for x in ["Chakra Sevak", "Dhams", "Hyderabad Dham", "Devotees", DEV_NAME]), crumbs)
 
     # summary cards vs database
     given = int(q(f"select coalesce(sum(qty),0) from stock_movement where devotee_id='{DEV}' and kind='assign_devotee' and reversed_by is null"))
@@ -142,11 +142,11 @@ with sync_playwright() as p:
     check("L2 Inventory tab shows books", a.get_by_role("heading", name="Book Inventory — Hyderabad Dham").count() == 1 and a.locator("table tbody tr").count() > 0)
     check("no page errors (admin)", not a.errs, str(a.errs))
 
-    # ---------------- Dham Manager: own Dham only
+    # ---------------- Sector Sevak: own Dham only
     m = login(b, "9000000002", "manager123", w=390)
     m.goto(B + "/dham"); settle(m)
     check("Manager: /dham opens own Dham", re.search(f"/dham/{HYD}$", m.url) is not None, m.url)
-    check("Manager: breadcrumb Dham Manager / My Dham", "Dham Manager" in m.get_by_role("navigation", name="You are here").inner_text())
+    check("Manager: breadcrumb Sector Sevak / My Dham", "Sector Sevak" in m.get_by_role("navigation", name="You are here").inner_text())
     m.locator("[data-testid=devotee-row]", has_text=DEV_NAME).first.click(); settle(m)
     check("Manager: opens devotee detail", f"/devotee/{DEV}" in m.url and m.get_by_text("Remaining with devotee").count() == 1)
     r1 = m.goto(B + f"/dham/{WGL}"); check("Manager: other Dham blocked (404)", r1.status == 404)

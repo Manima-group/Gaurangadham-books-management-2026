@@ -146,7 +146,7 @@ export async function assignToDham(_: ActionState, fd: FormData): Promise<Action
   const totalQty = lines.reduce((a, l) => a + l.qty, 0);
   return ok(
     `${num(totalQty)} books assigned to ${dh.name}.`,
-    `${summary(named)}. The Dham Manager has been notified and can now give these books to devotees.`,
+    `${summary(named)}. The Sector Sevak has been notified and can now give these books to devotees.`,
     { label: "View Book Stock", href: "/stock" },
   );
 }
@@ -260,7 +260,7 @@ export async function takeBack(_: ActionState, fd: FormData): Promise<ActionStat
   const named = lines.map((l) => ({ title: books.find((b) => b.id === l.bookId)?.title ?? "Book", qty: l.qty }));
   const verb = kind === "damaged" ? "recorded as damaged/lost" : "returned to the Dham";
   await logActivity(u.id, `${u.name}: ${summary(named)} from ${dev.name} ${verb}`, { dhamId: dev.dhamId });
-  await notify([devoteeId], kind === "damaged" ? "Books marked as damaged/lost" : "Books taken back by your Manager", summary(named), "/my/books");
+  await notify([devoteeId], kind === "damaged" ? "Books marked as damaged/lost" : "Books taken back by your Sector Sevak", summary(named), "/my/books");
   revalidatePath("/stock");
   return ok(`${summary(named)} ${verb}.`, "Stock has been updated for both the devotee and the Dham.");
 }
@@ -274,9 +274,10 @@ export async function undoMovement(_: ActionState, fd: FormData): Promise<Action
   if (!m) return fail("This entry was not found.");
   if (m.reversedBy) return fail("This was already undone.");
   if (m.kind === "correction") return fail("An undo can't be undone. Record the books again instead.");
+  if (m.kind === "transfer_out" || m.kind === "transfer_in") return fail("This is part of a Dham transfer.", "Transfers can't be undone here. Ask the other Dham to send the books back with a new transfer.");
   if (m.reportId) return fail("This came from a daily report.", "Delete that report instead — its stock is reversed with it.");
   if (u.role === "manager" && m.dhamId !== u.dhamId) return fail("This belongs to another Dham.");
-  if (u.role === "manager" && m.kind === "assign_dham") return fail("Only the Admin can undo books sent to a Dham.");
+  if (u.role === "manager" && m.kind === "assign_dham") return fail("Only the Chakra Sevak can undo books sent to a Dham.");
   const err = await db.transaction((tx) => reverseMovements(tx, [id], u.id, `Undone by ${u.name}`));
   if (err) return fail("This can't be undone.", err);
   const [b] = await db.select({ title: schema.book.title }).from(schema.book).where(eq(schema.book.id, m.bookId));

@@ -7,7 +7,7 @@ export const activeBooks = () =>
 export const allBooks = () => db.select().from(schema.book).orderBy(asc(schema.book.title), asc(schema.book.language));
 export const allDhams = () => db.select().from(schema.dham).orderBy(asc(schema.dham.name));
 export const activeDhams = () => db.select().from(schema.dham).where(eq(schema.dham.isActive, true)).orderBy(asc(schema.dham.name));
-/** Everyone in a Dham who distributes books: devotees and the Dham Manager. */
+/** Everyone in a Dham who distributes books: devotees and the Sector Sevak. */
 export const devoteesOf = (dhamId: number) =>
   db
     .select()

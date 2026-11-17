@@ -33,15 +33,15 @@ export default async function StockPage() {
         }
       />
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <StatCard label="Total books in my Dham" value={num(total(scope))} tone="blue" />
-        <StatCard label="In the Dham store" value={num(total(store))} hint="Not yet given to devotees" />
-        <StatCard label="With devotees" value={num(total(scope) - total(store))} tone="purple" />
+        <StatCard label="Total books in my Dham" value={num(total(scope))} tone="blue" href="/availability" hint="Tap: book names & counts" />
+        <StatCard label="In the Dham store" value={num(total(store))} hint="Not yet given to devotees" href="/availability?show=shelf&view=dham" />
+        <StatCard label="With devotees" value={num(total(scope) - total(store))} tone="purple" href="/availability?show=devotees" hint="Tap: who has which book" />
       </div>
       <div className="mb-4"><DownloadReport kind="stock" /></div>
       <Card title="Books in my Dham" actions={<Link href="/stock/history" className="tap text-sm font-semibold text-brand-700 hover:underline">Book Movement History →</Link>}>
         {rows.length === 0 ? (
           <EmptyState title="Your Dham has no books yet." action={<LinkButton href="/stock/receive">Receive Books</LinkButton>}>
-            When books arrive, record them with Receive Books. Books sent by the Admin will also appear here automatically.
+            When books arrive, record them with Receive Books. Books sent by the Chakra Sevak will also appear here automatically.
           </EmptyState>
         ) : (
           <>
@@ -86,7 +86,7 @@ export default async function StockPage() {
           </>
         )}
       </Card>
-      <Card title="Books with each devotee" className="mt-4" subtitle="Copies currently with the devotee (as per approved reports)">
+      <Card id="devotees" title="Books with each devotee" className="mt-4" subtitle="Copies currently with the devotee (as per approved reports)">
         <div id="devotees" />
         {devotees.length === 0 ? (
           <p className="text-sm text-ink-500">No devotees yet. <Link href="/people" className="font-semibold underline">Add a devotee</Link>.</p>
@@ -97,7 +97,7 @@ export default async function StockPage() {
               return (
                 <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
                   <div>
-                    <p className="font-semibold">{d.name}{d.id === u.id ? " (me)" : d.role === "manager" ? " (Manager)" : ""}</p>
+                    <p className="font-semibold">{d.name}{d.id === u.id ? " (me)" : d.role === "manager" ? " (Sector Sevak)" : ""}</p>
                     <p className="text-sm text-ink-500">{num(total(m))} books with them</p>
                   </div>
                   <div className="flex gap-2">
@@ -124,7 +124,7 @@ async function AdminStock({ books }: { books: Awaited<ReturnType<typeof allBooks
         title="Book Stock"
         crumbs={[{ label: "Home", href: "/dashboard" }, { label: "Book Stock" }]}
         doHere="See where every book is: in the Central Store, at each Dham, or with devotees."
-        next="Receive books when they arrive, then send them to Dhams. Managers give them to devotees."
+        next="Receive books when they arrive, then send them to Dhams. Sector Sevaks give them to devotees."
         actions={
           <>
             <LinkButton href="/stock/receive" variant="secondary">📥 Receive Books</LinkButton>
@@ -133,16 +133,17 @@ async function AdminStock({ books }: { books: Awaited<ReturnType<typeof allBooks
         }
       />
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="All books available" value={num(total(org))} tone="blue" hint="Not yet sold" />
-        <StatCard label="In Central Store" value={num(total(central))} hint="Not yet sent to a Dham" />
+        <StatCard label="All books available" value={num(total(org))} tone="blue" hint="Not yet sold" href="/availability?view=dham" />
+        <StatCard label="In Central Store" value={num(total(central))} hint="Not yet sent to a Dham" href="#central" />
         {dhams.slice(0, 2).map((d, i) => (
-          <StatCard key={d.id} label={d.name} value={num(total(perDham[i]))} tone="purple" hint="Store + with devotees" />
+          <StatCard key={d.id} label={d.name} value={num(total(perDham[i]))} tone="purple" hint="Store + with devotees" href={`/availability?dham=${d.id}&view=dham`} />
         ))}
       </div>
       <div className="mb-4"><DownloadReport kind="stock" /></div>
       <Card
+        id="central"
         title="Where are the books?"
-        subtitle={<>Each Dham column includes books in the Dham store and books with its devotees.<HelpTip>Books leave this table only when a sale, return or damage is approved by a Manager.</HelpTip></>}
+        subtitle={<>Each Dham column includes books in the Dham store and books with its devotees.<HelpTip>Books leave this table only when a sale, return or damage is approved by a Sector Sevak.</HelpTip></>}
         actions={<Link href="/stock/history" className="tap text-sm font-semibold text-brand-700 hover:underline">Book Movement History →</Link>}
       >
         {rows.length === 0 ? (
