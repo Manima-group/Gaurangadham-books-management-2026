@@ -17,9 +17,9 @@ export const viewport: Viewport = {
   themeColor: "#0d1b40",
 };
 
-/* Runs before the page paints: skip the intro if it was already seen in this session,
-   or replay it when the URL has ?intro=1. */
-const introScript = `try{var q=location.search.indexOf('intro=1')>-1;if(q){sessionStorage.removeItem('gb-intro-seen')}else if(sessionStorage.getItem('gb-intro-seen')){document.documentElement.classList.add('no-splash')}}catch(e){}`;
+/* Runs before the page paints: skip the intro if it was already seen in this session
+   (and always on the /launch ceremony), or replay it when the URL has ?intro=1. */
+const introScript = `try{var q=location.search.indexOf('intro=1')>-1;if(location.pathname.indexOf('/launch')===0){document.documentElement.classList.add('no-splash')}else if(q){sessionStorage.removeItem('gb-intro-seen')}else if(sessionStorage.getItem('gb-intro-seen')){document.documentElement.classList.add('no-splash')}}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

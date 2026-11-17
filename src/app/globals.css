@@ -241,3 +241,37 @@ input, select, textarea { font-size: 16px; }
 @keyframes logo3d-breathe { 0%, 100% { opacity: 0.7; scale: 0.95; } 50% { opacity: 1; scale: 1.05; } }
 @keyframes logo3d-shadow { 0%, 50%, 100% { transform: scaleX(1); opacity: 1; } 25%, 75% { transform: scaleX(0.35); opacity: 0.5; } }
 @media (prefers-reduced-motion: reduce) { .shimmer, .logo3d-glow, .logo3d-shadow { animation: none !important; } .logo3d-spin { animation-duration: 6s !important; } }
+
+/* ------------------------------------------------------------------ */
+/* Launch ceremony (/launch)                                           */
+/* ------------------------------------------------------------------ */
+.launch-bg {
+  background:
+    radial-gradient(900px 600px at 50% 30%, rgb(242 107 29 / 0.28), transparent 65%),
+    radial-gradient(700px 500px at 50% 110%, rgb(236 72 153 / 0.18), transparent 70%),
+    linear-gradient(180deg, #08112a 0%, #0d1b40 55%, #1d1236 100%);
+}
+.launch-rays {
+  background: repeating-conic-gradient(from 0deg, rgb(253 177 116 / 0.09) 0deg 5deg, transparent 5deg 15deg);
+  -webkit-mask-image: radial-gradient(circle, black 0%, transparent 55%);
+  mask-image: radial-gradient(circle, black 0%, transparent 55%);
+  animation: intro-spin 80s linear infinite;
+}
+.launch-halo { background: radial-gradient(circle, rgb(255 230 200 / 0.55), rgb(251 138 60 / 0.25) 45%, transparent 70%); filter: blur(6px); animation: intro-breathe 3.4s ease-in-out infinite; }
+.launch-gold { background: linear-gradient(180deg, #fff 0%, #ffe2c7 50%, #fb8a3c 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.launch-button { animation: launch-pulse 2.2s ease-in-out infinite; }
+@keyframes launch-pulse { 0%, 100% { box-shadow: 0 14px 40px -10px rgb(242 107 29 / 0.9), 0 0 0 0 rgb(251 138 60 / 0.5); } 50% { box-shadow: 0 14px 40px -10px rgb(242 107 29 / 0.9), 0 0 0 16px rgb(251 138 60 / 0); } }
+.launch-flower { transform: translateY(-12vh); opacity: 0; animation-name: launch-fall; animation-timing-function: linear; animation-fill-mode: forwards; will-change: transform; }
+@keyframes launch-fall {
+  0% { transform: translate(0, -12vh) rotate(0deg); opacity: 0; }
+  8% { opacity: 1; }
+  25% { transform: translate(var(--sway), 18vh) rotate(calc(var(--spin) * 0.25)); }
+  50% { transform: translate(calc(var(--sway) * -0.6), 48vh) rotate(calc(var(--spin) * 0.5)); }
+  75% { transform: translate(var(--sway), 78vh) rotate(calc(var(--spin) * 0.75)); }
+  92% { opacity: 1; }
+  100% { transform: translate(0, 108vh) rotate(var(--spin)); opacity: 0; }
+}
+.launch-count { animation: launch-count 1s cubic-bezier(0.2, 0.8, 0.2, 1) both; text-shadow: 0 0 40px rgb(251 138 60 / 0.8); }
+@keyframes launch-count { 0% { transform: scale(1.8); opacity: 0; } 25% { transform: scale(1); opacity: 1; } 85% { opacity: 1; } 100% { transform: scale(0.85); opacity: 0.2; } }
+.launch-in { animation: intro-in 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+@media (prefers-reduced-motion: reduce) { .launch-rays, .launch-halo, .launch-button { animation: none !important; } }
