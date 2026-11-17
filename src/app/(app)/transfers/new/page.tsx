@@ -20,7 +20,7 @@ export default async function NewTransferPage({ searchParams }: { searchParams: 
       title="Request Books"
       crumbs={[{ label: "Home", href: "/dashboard" }, { label: "Books Transfer", href: "/transfers" }, { label: "Request Books" }]}
       doHere="Search the book, choose a Dham shelf or a devotee who has free copies, and enter how many you need. Copies already reserved for other transfers are not shown."
-      next="The source Dham's Sector Sevak approves (the copies are then reserved), the sender sends them, and the receiver confirms what arrived. Stock changes only when books are sent and received."
+      next="Whoever has the books approves — a devotee for their own books, the Sector Sevak for a Dham shelf. The copies are then reserved, they send them, and the receiver confirms what arrived. Stock changes only when books are sent and received."
     />
   );
   if (u.role === "devotee" && !u.canSeeAvailability)

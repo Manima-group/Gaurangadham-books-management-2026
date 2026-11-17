@@ -16,7 +16,7 @@ def login(b, u, pw, w=390):
     return pg
 def settle(pg):
     pg.wait_for_load_state("networkidle")
-    try: pg.locator(".book3d").first.wait_for(state="detached", timeout=15000)
+    try: pg.locator(".logo3d").first.wait_for(state="detached", timeout=15000)
     except Exception: pass
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium-1243/chrome-linux64/chrome")
@@ -106,11 +106,11 @@ with sync_playwright() as p:
     cdp = a.context.new_cdp_session(a); cdp.send("Network.enable")
     cdp.send("Network.emulateNetworkConditions", {"offline": False, "latency": 2500, "downloadThroughput": -1, "uploadThroughput": -1})
     a.click("a[href='/money'] >> nth=0"); a.wait_for_timeout(400)
-    check("3D book loader shows while loading", a.locator(".book3d").count() >= 1 and a.locator(".shimmer").count() >= 3)
+    check("3D book loader shows while loading", a.locator(".logo3d").count() >= 1 and a.locator(".shimmer").count() >= 3)
     a.screenshot(path="shots/n-loader.png")
     cdp.send("Network.emulateNetworkConditions", {"offline": False, "latency": 0, "downloadThroughput": -1, "uploadThroughput": -1})
     a.wait_for_url(re.compile("/money")); a.wait_for_timeout(1500)
-    check("loader goes away when page arrives", a.locator(".book3d").count() == 0)
+    check("loader goes away when page arrives", a.locator(".logo3d").count() == 0)
     errs = d.errs + m.errs + a.errs
     check("no page errors", not errs); 
     if errs: print(errs)

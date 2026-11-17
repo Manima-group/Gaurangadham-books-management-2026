@@ -9,7 +9,7 @@ import { logActivity, notify, dhamManagers } from "@/lib/activity";
 import { holderStock, lockHolders, lockKey } from "@/lib/stock";
 import { num, todayIST } from "@/lib/format";
 import {
-  approvedOf, availableFor, canCancel, canReceive, canSee, canSend, fromHolderOf, holderNames, holderUserId,
+  approvedOf, availableFor, canApprove, canCancel, canReceive, canSee, canSend, fromHolderOf, holderNames, holderUserId,
   isDevoteeHolder, isSourceManager, ref, remainingOf, toHolderOf, type Transfer, type TransferLine,
 } from "@/lib/transfers";
 
@@ -146,14 +146,25 @@ export async function requestTransfer(_: ActionState, fd: FormData): Promise<Act
   const title = await titles(lines.map((l) => l.bookId));
   const what = sum(lines.map((l) => ({ title: title(l.bookId), qty: l.qty })));
   await logActivity(u.id, `${u.name} requested ${what} from ${name(source)} for ${name(dest)} (${ref(id)})`, { dhamId: dst.dhamId });
-  await notify(await dhamManagers(src.dhamId), `Book request ${ref(id)} for ${name(dest)}`, `${what}. Please check and approve.`, `/transfers/${id}`);
+  if (src.devoteeId) {
+    // Devotee to devotee: the devotee who has the books decides; their Sector Sevak is kept informed.
+    await notify([src.devoteeId], `${name(dest)} is asking for your books (${ref(id)})`, `${what}. Check your copies and approve, change the quantity, or reject.`, `/transfers/${id}`);
+    await notify(await dhamManagers(src.dhamId), `Book request ${ref(id)}: ${name(source)} → ${name(dest)}`, `${what}. For your information — ${name(source)} will approve.`, `/transfers/${id}`);
+  } else {
+    await notify(await dhamManagers(src.dhamId), `Book request ${ref(id)} for ${name(dest)}`, `${what}. Please check and approve.`, `/transfers/${id}`);
+  }
   done(x.t.id);
-  return ok(`Request ${ref(id)} sent.`, `The Sector Sevak of ${name(source).replace(/ \(shelf\)$/, "")}'s Dham will check and approve it.`, { label: "See this request", href: `/transfers/${id}` });
+  return ok(
+    `Request ${ref(id)} sent.`,
+    src.devoteeId ? `${name(source)} will check their copies and approve.` : `The Sector Sevak of ${name(source).replace(/ \(shelf\)$/, "")} will check and approve it.`,
+    { label: "See this request", href: `/transfers/${id}` },
+  );
 }
 
-/* 2. APPROVE (fully or partly — the approved copies are reserved) or REJECT. */
+/* 2. APPROVE (fully or partly — the approved copies are reserved) or REJECT.
+   By the devotee who holds the books, or for a Dham shelf by its Sector Sevak. */
 export async function approveTransfer(_: ActionState, fd: FormData): Promise<ActionState> {
-  const u = await requireUser("admin", "manager");
+  const u = await requireUser("admin", "manager", "devotee");
   const id = Number(fd.get("id"));
   const reply = String(fd.get("reply") || "").trim().slice(0, 300) || null;
   const decline = fd.get("decision") === "decline";
@@ -166,7 +177,7 @@ export async function approveTransfer(_: ActionState, fd: FormData): Promise<Act
     const x = await load(id, tx);
     if (!x) return { err: "This request was not found." };
     const { t, lines } = x;
-    if (!isSourceManager(u, t)) return { err: "Only the Sector Sevak of the sending Dham can approve this." };
+    if (!canApprove(u, t)) return { err: "Only the person who has these books (or their Sector Sevak) can approve this." };
     if (t.status !== "requested") return { err: "This request was already answered." };
     if (decline) {
       await tx.update(schema.dhamTransfer).set({ status: "declined", reply, closedBy: u.id, closedAt: new Date() }).where(eq(schema.dhamTransfer.id, id));
@@ -193,10 +204,16 @@ export async function approveTransfer(_: ActionState, fd: FormData): Promise<Act
       sender = senderId;
     }
     for (const p of plan) await tx.update(schema.dhamTransferLine).set({ approvedQty: p.qty }).where(eq(schema.dhamTransferLine.id, p.line.id));
-    await tx.update(schema.dhamTransfer).set({ status: "approved", reply, senderId: sender, approvedBy: u.id, approvedAt: new Date() }).where(eq(schema.dhamTransfer.id, id));
+    // The sender approving their own books has accepted to send them too — one step less.
+    const selfSend = !!sender && sender === u.id;
+    await tx.update(schema.dhamTransfer).set({
+      status: selfSend ? "accepted" : "approved", reply, senderId: sender, approvedBy: u.id, approvedAt: new Date(),
+      ...(selfSend ? { acceptedBy: u.id, acceptedAt: new Date() } : {}),
+    }).where(eq(schema.dhamTransfer.id, id));
     const total = plan.reduce((a, p) => a + p.qty, 0);
     const partial = plan.some((p) => p.qty < p.line.requestedQty);
     await event(tx, id, partial ? "partially_approved" : "approved", u.id, total, reply);
+    if (selfSend) await event(tx, id, "accepted", u.id, total);
     return { t: { ...t, senderId: sender }, plan };
   });
   if ("short" in res && res.short) return fail("Please check the quantities.", "You can approve up to what was asked and what is available.", res.short);
@@ -213,7 +230,10 @@ export async function approveTransfer(_: ActionState, fd: FormData): Promise<Act
   await logActivity(u.id, `${u.name} approved ${ref(id)}: ${what}`, { dhamId: t.fromDhamId });
   await notify(await people(t, "both"), `Book request ${ref(id)} approved`, `${what}. ${t.senderId ? "The sender will accept and send." : "The books will be sent soon."}`, `/transfers/${id}`);
   done(id);
-  return ok("Approved — these copies are now reserved.", t.senderId ? "The sender has been asked to accept and send them." : "Tap “Send books” when they leave your Dham.");
+  return ok(
+    "Approved — these copies are now reserved.",
+    t.senderId === u.id ? "Now pack them and tap “Send books” with the quantities you send." : t.senderId ? "The sender has been asked to accept and send them." : "Tap “Send books” when they leave your Dham.",
+  );
 }
 
 /* 3. ACCEPT — the sender agrees to prepare and send. */

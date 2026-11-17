@@ -50,7 +50,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
       <PageHeader
         title="Books Transfer"
         crumbs={[{ label: "Home", href: "/dashboard" }, { label: "Books Transfer" }]}
-        doHere="Move books between Dhams and devotees. Whoever needs books asks → the source Dham's Sector Sevak approves (copies are reserved) → the sender accepts and sends → the receiver confirms what arrived."
+        doHere="Move books between Dhams and devotees. Whoever needs books asks → whoever has them approves (a devotee for their own books, the Sector Sevak for a Dham shelf; copies are reserved) → they send → the receiver confirms what arrived."
         next="Stock changes only when books are sent and when they are received. A transfer is not a sale: sales and money totals do not change."
         actions={
           <>

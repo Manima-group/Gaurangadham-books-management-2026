@@ -7,8 +7,8 @@ import { holderStock } from "@/lib/stock";
 import { fmtDateTime, num } from "@/lib/format";
 import { TRANSFER_EVENT, TRANSFER_STATUS } from "@/lib/terms";
 import {
-  approvedOf, availableFor, canCancel, canReceive, canSee, canSend, dispatchedOf, fromHolderOf, holderNames,
-  isDevoteeHolder, isSourceManager, ref, remainingOf, toHolderOf,
+  approvedOf, availableFor, canApprove, canCancel, canReceive, canSee, canSend, dispatchedOf, fromHolderOf, holderNames,
+  holderUserId, isDevoteeHolder, isSourceManager, ref, remainingOf, toHolderOf,
 } from "@/lib/transfers";
 import { Alert, Badge, Card, PageHeader } from "@/components/ui";
 import { AcceptButton, ApproveForm, CancelButton, DispatchForm, ReceiveForm, ReconcileForm, type LineView } from "../forms";
@@ -36,8 +36,9 @@ export default async function TransferPage({ params }: { params: Promise<{ id: s
   const partialApproval = ["approved", "accepted", "sent", "partially_received", "disputed", "received", "completed"].includes(t.status) && lines.some((l) => approvedOf(l) < l.requestedQty);
 
   const sourceMgr = isSourceManager(u, t);
+  const approver = canApprove(u, t);
   const [avail, inHand] = await Promise.all([
-    t.status === "requested" && sourceMgr ? availableFor(src, db, id) : null,
+    t.status === "requested" && approver ? availableFor(src, db, id) : null,
     (t.status === "approved" || t.status === "accepted") && canSend(u, t) ? holderStock(src) : null,
   ]);
   const view: LineView[] = lines.map((l) => ({
@@ -91,8 +92,13 @@ export default async function TransferPage({ params }: { params: Promise<{ id: s
       </ol>
 
       <div className="mb-4 space-y-3">
-        {t.status === "requested" && sourceMgr && (
-          <Card title="Check and approve" subtitle="Approved copies are reserved at once, so they can't be given to anyone else.">
+        {t.status === "requested" && approver && (
+          <Card
+            title={isDevoteeHolder(src) && u.id === holderUserId(src) ? "Someone is asking for your books" : "Check and approve"}
+            subtitle={isDevoteeHolder(src) && u.id === holderUserId(src)
+              ? "Check how many you have. Approve all, change the number you can give, or reject. Approved copies are kept aside for them."
+              : "Approved copies are reserved at once, so they can't be given to anyone else."}
+          >
             <ApproveForm id={t.id} lines={view} senders={senders} needsSender={!isDevoteeHolder(src)} />
           </Card>
         )}
