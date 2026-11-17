@@ -7,7 +7,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db, schema } from "@/db";
 import { fail, type ActionState } from "@/lib/action";
-import { requireUser } from "@/lib/session";
+import { requireUser, requireSignedIn } from "@/lib/session";
 import { logActivity } from "@/lib/activity";
 
 const LoginSchema = z.object({
@@ -52,7 +52,7 @@ export async function logoutAction() {
 }
 
 export async function finishOnboarding() {
-  const u = await requireUser();
+  const u = await requireSignedIn();
   await db.update(schema.user).set({ onboarded: true }).where(eq(schema.user.id, u.id));
   redirect("/dashboard");
 }
@@ -66,7 +66,7 @@ const PwSchema = z
   .refine((v) => v.next === v.confirm, { path: ["confirm"], message: "The two new passwords do not match." });
 
 export async function changePasswordAction(_: ActionState, fd: FormData): Promise<ActionState> {
-  await requireUser();
+  await requireSignedIn();
   const p = PwSchema.safeParse(Object.fromEntries(fd));
   if (!p.success) {
     const fe: Record<string, string> = {};

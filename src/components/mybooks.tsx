@@ -5,7 +5,7 @@ import { BookCover } from "./ui";
 
 export type TotalKey = "given" | "sold" | "left";
 const qtyOf: Record<TotalKey, (b: DevoteeBook) => number> = {
-  given: (b) => b.given - b.returned,
+  given: (b) => b.given + b.transferIn - b.returned - b.transferOut,
   sold: (b) => b.sold + b.pendingSold,
   left: (b) => Math.max(b.available, 0),
 };
@@ -94,6 +94,8 @@ export function BookList({ books, limit }: { books: DevoteeBook[]; limit?: numbe
               <span>
                 Given <b>{num(b.given)}</b> · Sold <b>{num(sold)}</b>
                 {b.pendingSold ? <span className="text-sky-700"> ({b.pendingSold} in review)</span> : null}
+                {b.transferIn ? <> · Given to Devotee — Transfer <b>{num(b.transferIn)}</b></> : null}
+                {b.transferOut ? <> · Transferred out <b>{num(b.transferOut)}</b></> : null}
                 {b.returned + b.damaged ? <> · Returned/damaged <b>{num(b.returned + b.damaged)}</b></> : null}
               </span>
               <span className="font-semibold text-ink-900">{inr(b.soldAmount)}</span>

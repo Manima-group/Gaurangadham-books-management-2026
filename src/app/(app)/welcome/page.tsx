@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/session";
+import { requireSignedIn } from "@/lib/session";
 import { ROLE_LABEL } from "@/lib/terms";
 import { Tour, type TourStep } from "./tour";
 
@@ -24,10 +24,16 @@ const STEPS: Record<string, TourStep[]> = {
     { icon: "💰", title: "Hand over the money", body: "When you give money to your Sector Sevak (cash, UPI or bank), record it in Submit Money. You can submit in parts." },
     { icon: "🔔", title: "You'll be told what happens", body: "When your Sector Sevak approves your report or receives your money, you get a notification on the bell icon at the top." },
   ],
+  contact: [
+    { icon: "🙏", title: "Hare Krishna! Welcome", body: "You help people who want to hear about Children's Club, Satsang, Gita classes and more. This app keeps their details safely." },
+    { icon: "➕", title: "Add New Contact", body: "Tick what they are interested in, then their name, mobile number and area. For Children's Club, take the parent or guardian's details." },
+    { icon: "✅", title: "Only with their permission", body: "Tick “They agreed to be contacted” only if they said yes. People are contacted only about what they chose." },
+    { icon: "📇", title: "My Contacts", body: "See everyone you added and your totals. You can correct a contact if something was typed wrongly." },
+  ],
 };
 
 export default async function WelcomePage() {
-  const u = await requireUser();
+  const u = await requireSignedIn();
   return (
     <div className="mx-auto max-w-xl py-4">
       <p className="mb-2 text-center text-sm font-semibold text-brand-700">Guided tour</p>

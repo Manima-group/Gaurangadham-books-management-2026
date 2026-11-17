@@ -41,14 +41,25 @@ export const getUser = cache(async (): Promise<AppUser | null> => {
     onboarded: u.onboarded,
     dhamName,
     isCoSevak: u.isCoSevak,
-    canSeeAvailability: u.role === "admin" || u.canSeeAvailability,
+    canSeeAvailability: u.role === "admin" || ((u.role === "manager" || u.role === "devotee") && u.canSeeAvailability),
   };
 });
 
+/**
+ * Signed-in user with one of `roles`. With no roles: any book-work role — a Contact Collection
+ * Sevak is never let in by default; pages open to them call requireSignedIn() instead.
+ */
 export async function requireUser(...roles: Role[]): Promise<AppUser> {
   const u = await getUser();
   if (!u) redirect("/login");
-  if (roles.length && !roles.includes(u.role)) redirect("/dashboard?denied=1");
+  if (roles.length ? !roles.includes(u.role) : u.role === "contact") redirect("/dashboard?denied=1");
+  return u;
+}
+
+/** Any signed-in user, Contact Collection Sevaks included (home, account, notifications). */
+export async function requireSignedIn(): Promise<AppUser> {
+  const u = await getUser();
+  if (!u) redirect("/login");
   return u;
 }
 

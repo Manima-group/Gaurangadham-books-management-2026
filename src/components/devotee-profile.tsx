@@ -78,14 +78,16 @@ type Books = Awaited<ReturnType<typeof devoteeBooks>>;
 function BooksTab({ books, amounts }: { books: Books; amounts: Map<number, { approved: number; pending: number; pendingQty: number }> }) {
   if (books.length === 0)
     return <Card><EmptyState icon="📚" title="No books given to this devotee yet.">Books appear here once the Dham gives them some.</EmptyState></Card>;
+  const hasTransfers = books.some((b) => b.transferIn || b.transferOut);
   return (
-    <Card id="books" title="Book Inventory" subtitle="Remaining = received − sold − returned − damaged. Current stock, not affected by any date filter.">
+    <Card id="books" title="Book Inventory" subtitle="Remaining = received + by transfer − transferred out − sold − returned − damaged. Current stock, not affected by any date filter.">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] text-sm">
           <thead className="text-left text-xs text-ink-500">
             <tr className="border-b border-stone-200">
               <th className="py-2 pr-3">Book</th>
               <th className="px-2 text-right">Received</th>
+              {hasTransfers && <th className="px-2 text-right">Given to Devotee — Transfer</th>}
               <th className="px-2 text-right">Sold</th>
               <th className="px-2 text-right">Returned</th>
               <th className="px-2 text-right">Remaining</th>
@@ -99,6 +101,7 @@ function BooksTab({ books, amounts }: { books: Books; amounts: Map<number, { app
                 <tr key={b.id} className="border-b border-stone-100" data-testid="book-row">
                   <td className="py-2.5 pr-3 font-medium">{b.title} <span className="text-ink-500">({b.language})</span></td>
                   <td className="px-2 text-right tabular-nums">{num(b.given)}</td>
+                  {hasTransfers && <td className="px-2 text-right tabular-nums">{b.transferIn ? `+${num(b.transferIn)}` : "—"}{b.transferOut ? <span className="block text-[11px] text-ink-500">−{num(b.transferOut)} sent out</span> : null}</td>}
                   <td className="px-2 text-right tabular-nums">{num(b.sold)}{b.pendingSold ? <span className="block text-[11px] text-amber-700">+{num(b.pendingSold)} waiting</span> : null}</td>
                   <td className="px-2 text-right tabular-nums">{num(b.returned)}{b.damaged ? <span className="block text-[11px] text-ink-500">{num(b.damaged)} damaged</span> : null}</td>
                   <td className="px-2 text-right font-bold tabular-nums text-brand-700">{num(b.holding)}</td>

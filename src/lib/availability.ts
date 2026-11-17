@@ -2,6 +2,7 @@ import "server-only";
 import { inArray } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { allHoldings } from "./stock";
+import { reservations } from "./transfers";
 import type { AppUser } from "./session";
 
 /**
@@ -24,11 +25,16 @@ export type BookAvail = {
 };
 
 export async function availability(dhamIds: number[] | null) {
-  const [holdings, books, dhams] = await Promise.all([
+  const [raw, res, books, dhams] = await Promise.all([
     allHoldings(),
+    reservations(),
     db.select().from(schema.book),
     db.select().from(schema.dham),
   ]);
+  // Copies approved for a Books Transfer are reserved: shown as not available.
+  const holdings = raw
+    .map((h) => (h.holder.startsWith("transit:") ? h : { ...h, qty: h.qty - (res.get(h.holder)?.get(h.bookId) ?? 0) }))
+    .filter((h) => h.qty > 0);
   const inScope = (d: number | null) => d != null && (dhamIds == null || dhamIds.includes(d));
   const devoteeIds = [...new Set(holdings.filter((h) => h.holder.startsWith("devotee:") && inScope(h.dhamId)).map((h) => h.holder.slice(8)))];
   const people = devoteeIds.length

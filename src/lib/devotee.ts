@@ -12,7 +12,9 @@ export type DevoteeBook = {
   size: "big" | "small";
   /** Value of copies reported sold (approved + being reviewed), at the price they were sold at. */
   soldAmount: number;
-  given: number;
+  given: number; // given by the Dham ("assign")
+  transferIn: number; // Given to Devotee — Transfer (from another devotee or Dham, incl. returns of own books)
+  transferOut: number; // sent to someone else by Books Transfer
   sold: number; // approved
   pendingSold: number; // in reports being reviewed
   returned: number;
@@ -27,6 +29,8 @@ export async function devoteeBooks(devoteeId: string): Promise<DevoteeBook[]> {
     with m as (
       select book_id,
         sum(qty) filter (where kind = 'assign_devotee')::int as given,
+        sum(qty) filter (where kind in ('transfer_in','transfer_return') and to_holder = ${"devotee:" + devoteeId})::int as tin,
+        sum(qty) filter (where kind = 'transfer_out' and from_holder = ${"devotee:" + devoteeId})::int as tout,
         sum(qty) filter (where kind = 'sold')::int as sold,
         sum(qty) filter (where kind = 'returned')::int as returned,
         sum(qty) filter (where kind = 'damaged')::int as damaged
@@ -43,15 +47,15 @@ export async function devoteeBooks(devoteeId: string): Promise<DevoteeBook[]> {
       where r.devotee_id = ${devoteeId} and r.status in ('submitted','approved') group by l.book_id
     )
     select b.id, b.title, b.language, b.sku, b.cover_url, b.price_paise, b.size, coalesce(amt.amount,0)::bigint as amount,
-      coalesce(m.given,0) as given, coalesce(m.sold,0) as sold, coalesce(m.returned,0) as returned,
+      coalesce(m.given,0) as given, coalesce(m.tin,0) as tin, coalesce(m.tout,0) as tout, coalesce(m.sold,0) as sold, coalesce(m.returned,0) as returned,
       coalesce(m.damaged,0) as damaged, coalesce(p.psold,0) as psold, coalesce(p.pall,0) as pall
     from m join book b on b.id = m.book_id left join p on p.book_id = m.book_id left join amt on amt.book_id = m.book_id
     order by b.title, b.language`)) as unknown as {
     id: number; title: string; language: string; sku: string; cover_url: string | null; price_paise: number; size: "big" | "small"; amount: number;
-    given: number; sold: number; returned: number; damaged: number; psold: number; pall: number;
+    given: number; tin: number; tout: number; sold: number; returned: number; damaged: number; psold: number; pall: number;
   }[];
   return rows.map((r) => {
-    const holding = r.given - r.sold - r.returned - r.damaged;
+    const holding = r.given + r.tin - r.tout - r.sold - r.returned - r.damaged;
     return {
       id: r.id,
       title: r.title,
@@ -62,6 +66,8 @@ export async function devoteeBooks(devoteeId: string): Promise<DevoteeBook[]> {
       size: r.size,
       soldAmount: Number(r.amount),
       given: r.given,
+      transferIn: r.tin,
+      transferOut: r.tout,
       sold: r.sold,
       pendingSold: r.psold,
       returned: r.returned,

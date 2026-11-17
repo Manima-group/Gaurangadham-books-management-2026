@@ -1,9 +1,10 @@
 import re
 from playwright.sync_api import sync_playwright
 PAGES = {
- ("9000000001","admin123"): ["/dashboard","/distribution","/distribution?period=week&size=big","/distribution/1","/distribution/2?period=all","/setup","/stock","/stock/receive","/stock/assign-dham","/stock/assign-devotees","/stock/history","/reports","/money","/monitor","/closing","/workflow","/dhams","/books","/people","/drives","/activity","/notifications","/account","/pending","/availability","/availability?view=dham","/availability/1","/transfers","/transfers/new"],
- ("9000000002","manager123"): ["/dashboard","/distribution","/distribution/1?period=month&size=small","/stock","/stock/receive","/stock/assign-devotees","/stock/history","/reports","/money","/pending","/closing","/workflow","/people","/activity","/notifications","/account","/availability","/availability?view=dham","/transfers","/transfers/new"],
- ("9000000011","devotee123"): ["/dashboard","/my/books","/my/sales","/my/money","/my/reports","/notifications","/account"],
+ ("9000000001","admin123"): ["/dashboard","/distribution","/distribution?period=week&size=big","/distribution/1","/distribution/2?period=all","/setup","/stock","/stock/receive","/stock/assign-dham","/stock/assign-devotees","/stock/history","/reports","/money","/monitor","/closing","/workflow","/dhams","/books","/people","/drives","/activity","/notifications","/account","/pending","/availability","/availability?view=dham","/availability/1","/transfers","/transfers/new","/transfers?tab=history","/transfers/report","/transfers/report?view=dham","/transfers/report?view=audit","/contacts","/contacts/new","/contacts/reports"],
+ ("9000000002","manager123"): ["/dashboard","/distribution","/distribution/1?period=month&size=small","/stock","/stock/receive","/stock/assign-devotees","/stock/history","/reports","/money","/pending","/closing","/workflow","/people","/activity","/notifications","/account","/availability","/availability?view=dham","/transfers","/transfers/new","/transfers/report","/contacts","/contacts/new","/contacts/reports"],
+ ("9000000011","devotee123"): ["/dashboard","/my/books","/my/sales","/my/money","/my/reports","/notifications","/account","/transfers"],
+ ("9000000031","contact123"): ["/dashboard","/contacts/new","/contacts/mine","/account","/notifications"],
 }
 total=0; errs=[]
 with sync_playwright() as p:

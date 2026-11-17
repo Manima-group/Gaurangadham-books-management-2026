@@ -17,6 +17,7 @@ import {
   serial,
   uniqueIndex,
   index,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 
 /* ------------------------------------------------------------------ */
@@ -32,7 +33,7 @@ export const user = pgTable("user", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   // App fields
-  role: text("role", { enum: ["admin", "manager", "devotee"] }).notNull().default("devotee"),
+  role: text("role", { enum: ["admin", "manager", "devotee", "contact"] }).notNull().default("devotee"), // contact = Contact Collection Sevak
   dhamId: integer("dham_id"),
   phone: text("phone").unique(),
   isActive: boolean("is_active").notNull().default(true),
@@ -155,7 +156,7 @@ export const stockMovement = pgTable(
   {
     id: serial("id").primaryKey(),
     kind: text("kind", {
-      enum: ["received", "assign_dham", "assign_devotee", "sold", "returned", "damaged", "correction", "transfer_out", "transfer_in"],
+      enum: ["received", "assign_dham", "assign_devotee", "sold", "returned", "damaged", "correction", "transfer_out", "transfer_in", "transfer_return", "transfer_loss"],
     }).notNull(),
     bookId: integer("book_id").notNull(),
     qty: integer("qty").notNull(),
@@ -360,31 +361,42 @@ export const stockCheckpointBalance = pgTable(
 );
 
 /**
- * Dham → Dham book transfer. The requesting Dham asks; the sending Dham approves and sends;
- * the requesting Dham confirms receipt. Stock leaves the sender at "sent" (held as
- * `transit:<id>`) and reaches the requester at "received".
+ * Books Transfer (reference BT-00001): Dham shelf or devotee → Dham shelf or devotee.
+ * requested → approved (approved qty reserved, nothing moves) → accepted (sender prepares)
+ * → sent/"dispatched" (stock leaves the sender, held as `transit:<id>`) → received quantities
+ * credited line by line → completed. Short receipts stay in transit as partially_received /
+ * disputed until received or reconciled (returned to sender or written off).
+ * fromDhamId / toDhamId are the Dhams of the two holders (used for scoping and approval).
  */
 export const dhamTransfer = pgTable(
   "dham_transfer",
   {
     id: serial("id").primaryKey(),
-    fromDhamId: integer("from_dham_id").notNull(), // sends the books
-    toDhamId: integer("to_dham_id").notNull(), // asked for them
-    status: text("status", { enum: ["requested", "approved", "sent", "received", "declined", "cancelled"] }).notNull().default("requested"),
+    fromDhamId: integer("from_dham_id").notNull(), // Dham of the source (approves)
+    toDhamId: integer("to_dham_id").notNull(), // Dham of the destination
+    /** `dham:<id>` or `devotee:<id>`; null on older rows = the Dham shelf. */
+    fromHolder: text("from_holder"),
+    toHolder: text("to_holder"),
+    status: text("status", {
+      enum: ["requested", "approved", "accepted", "sent", "partially_received", "disputed", "received", "completed", "declined", "cancelled"],
+    }).notNull().default("requested"),
     note: text("note"),
     reply: text("reply"),
+    senderId: text("sender_id"), // devotee who carries/sends the books (optional for Dham shelves)
     requestedBy: text("requested_by").notNull(),
     requestedAt: timestamp("requested_at").notNull().defaultNow(),
     approvedBy: text("approved_by"),
     approvedAt: timestamp("approved_at"),
+    acceptedBy: text("accepted_by"),
+    acceptedAt: timestamp("accepted_at"),
     sentBy: text("sent_by"),
     sentAt: timestamp("sent_at"),
     receivedBy: text("received_by"),
     receivedAt: timestamp("received_at"),
-    closedBy: text("closed_by"), // declined / cancelled by
+    closedBy: text("closed_by"), // declined / cancelled / completed by
     closedAt: timestamp("closed_at"),
   },
-  (t) => [index("dt_from_idx").on(t.fromDhamId, t.status), index("dt_to_idx").on(t.toDhamId, t.status)],
+  (t) => [index("dt_from_idx").on(t.fromDhamId, t.status), index("dt_to_idx").on(t.toDhamId, t.status), index("dt_status_idx").on(t.status)],
 );
 
 export const dhamTransferLine = pgTable(
@@ -394,7 +406,103 @@ export const dhamTransferLine = pgTable(
     transferId: integer("transfer_id").notNull(),
     bookId: integer("book_id").notNull(),
     requestedQty: integer("requested_qty").notNull(),
-    sentQty: integer("sent_qty"), // set when approved; may be less than asked
+    approvedQty: integer("approved_qty"), // older rows: approval was stored in sent_qty
+    sentQty: integer("sent_qty"), // dispatched quantity
+    receivedQty: integer("received_qty").notNull().default(0),
+    returnedQty: integer("returned_qty").notNull().default(0), // sent back to the sender on reconciliation
+    lostQty: integer("lost_qty").notNull().default(0), // written off by a Chakra Sevak on reconciliation
+    issue: text("issue"), // missing / damaged / wrong book note from the receiver
   },
-  (t) => [index("dtl_transfer_idx").on(t.transferId)],
+  (t) => [index("dtl_transfer_idx").on(t.transferId), index("dtl_book_idx").on(t.bookId)],
+);
+
+/** Every status change of a transfer: who, when, what quantities, remarks. Never edited. */
+export const dhamTransferEvent = pgTable(
+  "dham_transfer_event",
+  {
+    id: serial("id").primaryKey(),
+    transferId: integer("transfer_id").notNull(),
+    status: text("status").notNull(),
+    byUser: text("by_user").notNull(),
+    at: timestamp("at").notNull().defaultNow(),
+    qty: integer("qty"),
+    note: text("note"),
+  },
+  (t) => [index("dte_transfer_idx").on(t.transferId)],
+);
+
+/* ------------------------------------------------------------------ */
+/* Outreach Contacts — people met at book tables and programmes.       */
+/* Kept apart from books, stock and money.                             */
+/* ------------------------------------------------------------------ */
+
+export const outreachEvent = pgTable(
+  "outreach_event",
+  {
+    id: serial("id").primaryKey(),
+    dhamId: integer("dham_id"),
+    name: text("name").notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("oe_dham_idx").on(t.dhamId)],
+);
+
+export const outreachContact = pgTable(
+  "outreach_contact",
+  {
+    id: serial("id").primaryKey(),
+    collectorId: text("collector_id").notNull(),
+    dhamId: integer("dham_id"),
+    eventId: integer("event_id"),
+    fullName: text("full_name").notNull(), // for children's programmes: the parent / guardian
+    mobile: text("mobile").notNull(), // normalised 10-digit Indian mobile
+    altMobile: text("alt_mobile"),
+    email: text("email"),
+    area: text("area").notNull(),
+    city: text("city"),
+    ageGroup: text("age_group"),
+    language: text("language"),
+    contactTime: text("contact_time"),
+    location: text("location"), // where collected, if not a listed event
+    remarks: text("remarks"),
+    childName: text("child_name"), // first name only, for Children's Club; guardian details above
+    consent: boolean("consent").notNull(),
+    consentAt: timestamp("consent_at"),
+    purpose: text("purpose").notNull().default("Invite to the selected spiritual activities"),
+    duplicateOf: integer("duplicate_of"),
+    dupStatus: text("dup_status", { enum: ["none", "possible", "duplicate", "not_duplicate"] }).notNull().default("none"),
+    clientKey: text("client_key"), // stops a double tap or retry from saving twice
+    collectedAt: timestamp("collected_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("oc_collector_idx").on(t.collectorId, t.collectedAt),
+    index("oc_dham_idx").on(t.dhamId, t.collectedAt),
+    index("oc_mobile_idx").on(t.mobile),
+    uniqueIndex("oc_client_key_uq").on(t.collectorId, t.clientKey),
+  ],
+);
+
+export const outreachContactInterest = pgTable(
+  "outreach_contact_interest",
+  {
+    contactId: integer("contact_id").notNull(),
+    interest: text("interest").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.contactId, t.interest] }), index("oci_interest_idx").on(t.interest)],
+);
+
+/** Who did what to a contact record. Holds no names or numbers. */
+export const outreachContactAudit = pgTable(
+  "outreach_contact_audit",
+  {
+    id: serial("id").primaryKey(),
+    contactId: integer("contact_id").notNull(),
+    userId: text("user_id").notNull(),
+    action: text("action").notNull(), // created, edited, deleted, duplicate_marked, exported…
+    at: timestamp("at").notNull().defaultNow(),
+  },
+  (t) => [index("oca_contact_idx").on(t.contactId)],
 );

@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/session";
+import { requireSignedIn } from "@/lib/session";
+import { ContactDashboard } from "./contact";
 import { Alert } from "@/components/ui";
 import { AdminDashboard } from "./admin";
 import { ManagerDashboard } from "./manager";
 import { DevoteeDashboard } from "./devotee";
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
-  const u = await requireUser();
+  const u = await requireSignedIn();
   if (!u.onboarded) redirect("/welcome");
   const sp = await searchParams;
   return (
@@ -18,7 +19,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           </Alert>
         </div>
       )}
-      {u.role === "admin" ? <AdminDashboard /> : u.role === "manager" ? <ManagerDashboard user={u} /> : <DevoteeDashboard user={u} />}
+      {u.role === "admin" ? <AdminDashboard /> : u.role === "manager" ? <ManagerDashboard user={u} /> : u.role === "contact" ? <ContactDashboard user={u} /> : <DevoteeDashboard user={u} />}
     </>
   );
 }

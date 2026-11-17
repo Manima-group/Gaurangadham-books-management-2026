@@ -17,8 +17,10 @@ export const NAV: Record<Role, NavItem[]> = {
     { href: "/distribution", label: "Dham-wise Distribution", icon: "🏆", group: "Daily work" },
     { href: "/stock", label: "Book Stock", short: "Stock", icon: "📦", group: "Books" },
     { href: "/availability", label: "Book Availability", icon: "🔎", group: "Books" },
-    { href: "/transfers", label: "Dham Transfers", icon: "🚚", group: "Books" },
+    { href: "/transfers", label: "Books Transfer", icon: "🚚", group: "Books" },
     { href: "/books", label: "Books & Prices", icon: "📚", group: "Books" },
+    { href: "/contacts", label: "Outreach Contacts", icon: "📇", group: "Outreach" },
+    { href: "/contacts/reports", label: "Outreach Reports", icon: "📈", group: "Outreach" },
     { href: "/people", label: "Sevaks & Devotees", icon: "👥", group: "Setup" },
     { href: "/dhams", label: "Manage Dhams", icon: "🗺️", group: "Setup" },
     { href: "/drives", label: "Distribution Drives", icon: "🚩", group: "Setup" },
@@ -37,7 +39,9 @@ export const NAV: Record<Role, NavItem[]> = {
     { href: "/stock", label: "Book Stock", short: "Stock", icon: "📦", group: "Books" },
     { href: "/stock/assign-devotees", label: "Assign Books", icon: "🤲", group: "Books" },
     { href: "/availability", label: "Book Availability", icon: "🔎", group: "Books" },
-    { href: "/transfers", label: "Dham Transfers", icon: "🚚", group: "Books" },
+    { href: "/transfers", label: "Books Transfer", icon: "🚚", group: "Books" },
+    { href: "/contacts", label: "Outreach Contacts", icon: "📇", group: "Outreach" },
+    { href: "/contacts/reports", label: "Outreach Reports", icon: "📈", group: "Outreach" },
     { href: "/my/sales", label: "My Sales", icon: "🛍️", group: "My own distribution" },
     { href: "/my/books", label: "My Books", icon: "📚", group: "My own distribution" },
     { href: "/my/history", label: "My Sales & History", icon: "🕘", group: "My own distribution" },
@@ -54,7 +58,15 @@ export const NAV: Record<Role, NavItem[]> = {
     { href: "/my/money", label: "Submit Money", short: "Money", icon: "💰", mobile: true },
     { href: "/my/reports", label: "My Reports", short: "Reports", icon: "🗂️", mobile: true },
     { href: "/my/history", label: "Sales & History", icon: "🕘" },
+    { href: "/transfers", label: "Books Transfer", icon: "🚚" },
     { href: "/availability", label: "Book Availability", icon: "🔎", needs: "availability" },
+  ],
+  // Contact Collection Sevak: outreach only — nothing about books, stock or money.
+  contact: [
+    { href: "/dashboard", label: "Dashboard", icon: "🏠", mobile: true },
+    { href: "/contacts/new", label: "Add Contact", short: "Add", icon: "➕", mobile: true },
+    { href: "/contacts/mine", label: "My Contacts", icon: "📇", mobile: true },
+    { href: "/account", label: "Profile", icon: "👤", mobile: true },
   ],
 };
 

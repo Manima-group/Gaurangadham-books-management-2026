@@ -20,18 +20,20 @@ export function PersonForm({ role, dhams, isAdmin }: { role: string; dhams: { id
       {(s) => (
         <>
           {isAdmin ? (
-            <Field label="Role" htmlFor="role" help={r === "manager" ? "Runs one Dham: receives books, gives them to devotees, reviews reports." : r === "admin" ? "Sees and manages everything." : "Distributes books and reports daily sales from their phone."}>
+            <Field label="Role" htmlFor="role" help={r === "manager" ? "Runs one Dham: receives books, gives them to devotees, reviews reports." : r === "admin" ? "Sees and manages everything." : r === "contact" ? "Only collects contacts of interested people at book tables and programmes. Sees nothing about books or money." : "Distributes books and reports daily sales from their phone."}>
               <select id="role" name="role" value={r} onChange={(e) => setR(e.target.value)} className="field-input">
                 <option value="devotee">Devotee</option>
                 <option value="manager">Sector Sevak</option>
                 <option value="admin">Chakra Sevak</option>
+                <option value="contact">Contact Collection Sevak</option>
               </select>
             </Field>
           ) : (
-            <Field label="Add as" htmlFor="role" help={r === "manager" ? "A Co-Sevak helps you run this Dham. They get the same screens as you and show a Co-Sevak badge." : "Distributes books and reports daily sales from their phone."}>
+            <Field label="Add as" htmlFor="role" help={r === "manager" ? "A Co-Sevak helps you run this Dham. They get the same screens as you and show a Co-Sevak badge." : r === "contact" ? "Only collects contacts of interested people at book tables and programmes. Sees nothing about books or money." : "Distributes books and reports daily sales from their phone."}>
               <select id="role" name="role" value={r} onChange={(e) => setR(e.target.value)} className="field-input">
                 <option value="devotee">Devotee</option>
                 <option value="manager">Sector Sevak (Co-Sevak)</option>
+                <option value="contact">Contact Collection Sevak</option>
               </select>
             </Field>
           )}
@@ -70,7 +72,7 @@ export function PersonForm({ role, dhams, isAdmin }: { role: string; dhams: { id
               <span><b>Can see Book Availability</b> in all Dhams (which Dham and which devotee has each book, with mobile numbers).</span>
             </label>
           )}
-          <SubmitButton>{r === "manager" ? "Add Sector Sevak" : r === "admin" ? "Add Chakra Sevak" : "Add Devotee"}</SubmitButton>
+          <SubmitButton>{r === "manager" ? "Add Sector Sevak" : r === "admin" ? "Add Chakra Sevak" : r === "contact" ? "Add Contact Collection Sevak" : "Add Devotee"}</SubmitButton>
         </>
       )}
     </ActionForm>
@@ -125,6 +127,7 @@ export function EditPersonForm({
                   <option value="devotee">Devotee</option>
                   <option value="manager">Sector Sevak</option>
                   <option value="admin">Chakra Sevak</option>
+                  <option value="contact">Contact Collection Sevak</option>
                 </select>
               </Field>
               {r !== "admin" && (

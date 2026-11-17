@@ -11,7 +11,8 @@ CHECK = """() => {
     while (p) { const s = getComputedStyle(p); if (/(auto|scroll)/.test(s.overflowX)) { scroller = true; break; } p = p.parentElement; }
     if (r.right > vw + 1 && !scroller) out.wide.push((el.tagName + '.' + (el.className||'').toString().slice(0,40)) + ' ' + Math.round(r.right));
     if (scroller && el.tagName === 'TABLE') out.wide.push('TABLE-in-scroller w=' + Math.round(r.width));
-    if (['A','BUTTON','SELECT','INPUT'].includes(el.tagName) && getComputedStyle(el).display !== 'none' && r.height < 36 && r.height > 0 && !el.closest('nav[aria-label="You are here"]') && el.type !== 'hidden' && el.type !== 'radio')
+    if (['A','BUTTON','SELECT','INPUT'].includes(el.tagName) && getComputedStyle(el).display !== 'none' && r.height < 36 && r.height > 0 && !el.closest('nav[aria-label="You are here"]') && el.type !== 'hidden' && el.type !== 'radio'
+        && !((el.type === 'checkbox') && el.closest('label') && el.closest('label').getBoundingClientRect().height >= 36))
       out.small.push(el.tagName + ':' + (el.innerText||el.name||'').trim().slice(0,24) + ' h=' + Math.round(r.height));
   }
   out.wide = [...new Set(out.wide)].slice(0, 8); out.small = [...new Set(out.small)].slice(0, 10);
