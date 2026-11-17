@@ -8,10 +8,11 @@ import { fmtDate, inr, num, todayIST } from "@/lib/format";
 import { Alert, EmptyState, ReportStatus } from "@/components/ui";
 import { QueuedToday } from "@/components/queued-today";
 import { BookList, BookTotals } from "@/components/mybooks";
+import { listTransfers, needsMe } from "@/lib/transfers";
 
 export async function DevoteeDashboard({ user }: { user: AppUser }) {
   const today = todayIST();
-  const [books, money, [todayReport], places] = await Promise.all([
+  const [books, money, [todayReport], places, transfers] = await Promise.all([
     devoteeBooks(user.id),
     moneySummary({ devoteeId: user.id }),
     db.select().from(schema.dailyReport).where(and(eq(schema.dailyReport.devoteeId, user.id), eq(schema.dailyReport.reportDate, today))),
@@ -22,7 +23,9 @@ export async function DevoteeDashboard({ user }: { user: AppUser }) {
       .where(eq(schema.dailyReport.devoteeId, user.id))
       .orderBy(desc(schema.dailyReport.reportDate), desc(schema.dailyReportVenue.id))
       .limit(3),
+    listTransfers(user),
   ]);
+  const myTurn = transfers.rows.filter((t) => needsMe(user, t));
   const sent = todayReport && todayReport.status !== "draft";
   const needsFix = todayReport?.status === "changes_required" || todayReport?.status === "rejected";
   const toHand = Math.max(money.collected - money.submitted, 0);
@@ -57,6 +60,14 @@ export async function DevoteeDashboard({ user }: { user: AppUser }) {
             </Link>
           </QueuedToday>
         </div>
+      )}
+
+      {myTurn.length > 0 && (
+        <Link href="/transfers" className="flex items-center gap-3 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-200" data-testid="transfer-todo">
+          <span aria-hidden className="text-2xl">🚚</span>
+          <span className="min-w-0 flex-1 text-sm text-amber-950"><b>{myTurn.length} book transfer{myTurn.length > 1 ? "s" : ""}</b> waiting for you — send or confirm books</span>
+          <span className="text-sm font-semibold text-brand-700">Open ›</span>
+        </Link>
       )}
 
       {books.length === 0 ? (

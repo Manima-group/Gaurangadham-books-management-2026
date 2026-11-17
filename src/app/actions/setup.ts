@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { fail, fromZod, ok, type ActionState } from "@/lib/action";
-import { requireUser } from "@/lib/session";
+import { requireUser, requireSignedIn } from "@/lib/session";
 import { logActivity, notify } from "@/lib/activity";
 import { hashPassword } from "@/lib/auth";
 import { inr, toPaise } from "@/lib/format";
@@ -180,13 +180,13 @@ export async function updatePrices(_: ActionState, fd: FormData): Promise<Action
 /** A Sector Sevak may look after the devotees of their own Dham and the Co-Sevaks they work with. */
 function managerMayManage(u: { role: string; id: string; dhamId: number | null }, p: { id: string; role: string; dhamId: number | null; isCoSevak: boolean }) {
   if (u.role !== "manager") return true;
-  return p.dhamId === u.dhamId && p.id !== u.id && (p.role === "devotee" || (p.role === "manager" && p.isCoSevak));
+  return p.dhamId === u.dhamId && p.id !== u.id && (p.role === "devotee" || p.role === "contact" || (p.role === "manager" && p.isCoSevak));
 }
 
 const PersonSchema = z
   .object({
     name: s(2, "Please enter the full name."),
-    role: z.enum(["manager", "devotee", "admin"]),
+    role: z.enum(["manager", "devotee", "admin", "contact"]),
     phone: z
       .string()
       .trim()
@@ -208,7 +208,8 @@ export async function addPerson(_: ActionState, fd: FormData): Promise<ActionSta
   const u = await requireUser("admin", "manager");
   const raw = Object.fromEntries(fd);
   if (u.role === "manager") {
-    raw.role = raw.role === "manager" ? "manager" : "devotee"; // a Sector Sevak may add devotees or a Co-Sevak
+    // a Sector Sevak may add devotees, a Co-Sevak or a Contact Collection Sevak — always for their own Dham
+    raw.role = raw.role === "manager" || raw.role === "contact" ? raw.role : "devotee";
     raw.dhamId = String(u.dhamId);
   }
   const p = PersonSchema.safeParse(raw);
@@ -235,7 +236,7 @@ export async function addPerson(_: ActionState, fd: FormData): Promise<ActionSta
         // A Chakra Sevak added by a Chakra Sevak, or a Sector Sevak added by a Sector Sevak, helps maintain the app.
         isCoSevak: d.role === "admin" || (d.role === "manager" && (u.role === "manager" || fd.get("coSevak") === "on")),
         addedBy: u.id,
-        canSeeAvailability: u.role === "admin" && d.role !== "admin" && fd.get("canSeeAvailability") === "on",
+        canSeeAvailability: u.role === "admin" && (d.role === "manager" || d.role === "devotee") && fd.get("canSeeAvailability") === "on",
       });
       await tx.insert(schema.account).values({ id: randomUUID(), accountId: id, providerId: "credential", userId: id, password });
     });
@@ -245,7 +246,7 @@ export async function addPerson(_: ActionState, fd: FormData): Promise<ActionSta
     throw e;
   }
   const coSevak = d.role === "admin" || (d.role === "manager" && (u.role === "manager" || fd.get("coSevak") === "on"));
-  const roleWord = (d.role === "manager" ? "Sector Sevak" : d.role === "admin" ? "Chakra Sevak" : "Devotee") + (coSevak ? " (Co-Sevak)" : "");
+  const roleWord = (d.role === "manager" ? "Sector Sevak" : d.role === "admin" ? "Chakra Sevak" : d.role === "contact" ? "Contact Collection Sevak" : "Devotee") + (coSevak ? " (Co-Sevak)" : "");
   await logActivity(u.id, `${u.name} added ${d.name} as ${roleWord}`, { dhamId: d.dhamId ?? null, entity: "user", entityId: id });
   await notify([id], `Welcome to ${APP_NAME} 🙏`, "Your account is ready. Take the short tour to get started.", "/welcome");
   revalidatePath("/people");
@@ -319,7 +320,7 @@ export async function toggleDrive(fd: FormData) {
 /* ---------------- Notifications ---------------- */
 
 export async function markAllRead() {
-  const u = await requireUser();
+  const u = await requireSignedIn();
   await db.update(schema.notification).set({ isRead: true }).where(eq(schema.notification.userId, u.id));
   revalidatePath("/", "layout");
 }
@@ -400,7 +401,7 @@ const EditPerson = z.object({
     .transform((v) => (v ? v : null))
     .refine((v) => !v || z.string().email().safeParse(v).success, "Please enter a valid email or leave it empty."),
   dhamId: z.coerce.number().int().optional(),
-  role: z.enum(["manager", "devotee", "admin"]).optional(),
+  role: z.enum(["manager", "devotee", "admin", "contact"]).optional(),
 });
 
 export async function updatePerson(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -464,14 +465,14 @@ export async function updateDrive(_: ActionState, fd: FormData): Promise<ActionS
 /* ---------------- Notifications ---------------- */
 
 export async function deleteNotification(_: ActionState, fd: FormData): Promise<ActionState> {
-  const u = await requireUser();
+  const u = await requireSignedIn();
   await db.delete(schema.notification).where(and(eq(schema.notification.id, Number(fd.get("id"))), eq(schema.notification.userId, u.id)));
   revalidatePath("/", "layout");
   return ok("Deleted.");
 }
 
 export async function clearNotifications(_: ActionState): Promise<ActionState> {
-  const u = await requireUser();
+  const u = await requireSignedIn();
   await db.delete(schema.notification).where(eq(schema.notification.userId, u.id));
   revalidatePath("/", "layout");
   return ok("All notifications cleared.");
@@ -483,7 +484,7 @@ export async function toggleAvailability(fd: FormData) {
   const u = await requireUser("admin");
   const id = String(fd.get("id"));
   const [p] = await db.select().from(schema.user).where(eq(schema.user.id, id));
-  if (!p || p.role === "admin") return;
+  if (!p || (p.role !== "manager" && p.role !== "devotee")) return;
   await db.update(schema.user).set({ canSeeAvailability: !p.canSeeAvailability }).where(eq(schema.user.id, id));
   await logActivity(u.id, `${u.name} ${p.canSeeAvailability ? "removed" : "gave"} Book Availability access ${p.canSeeAvailability ? "from" : "to"} ${p.name}`, { dhamId: p.dhamId, entity: "user", entityId: id });
   revalidatePath("/people");

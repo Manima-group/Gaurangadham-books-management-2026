@@ -2,7 +2,7 @@ import Link from "next/link";
 import { after } from "next/server";
 import { maybeCheckpoint } from "@/lib/stock";
 import { and, count, eq } from "drizzle-orm";
-import { requireUser } from "@/lib/session";
+import { requireSignedIn } from "@/lib/session";
 import { db, schema } from "@/db";
 import { navFor } from "@/lib/nav";
 import { ROLE_LABEL } from "@/lib/terms";
@@ -14,7 +14,7 @@ import { OfflineSync } from "@/components/pwa";
 import { NavLoader } from "@/components/navloader";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const u = await requireUser();
+  const u = await requireSignedIn();
   const items = navFor(u);
   const [[{ unread }], [org]] = await Promise.all([
     db

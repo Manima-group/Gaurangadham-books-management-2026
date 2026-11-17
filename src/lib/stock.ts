@@ -151,10 +151,13 @@ export async function movementTotals(f: {
     damaged: 0,
     transfer_in: 0,
     transfer_out: 0,
+    transfer_return: 0,
+    transfer_loss: 0,
   };
   for (const x of r) out[x.kind] = Number(x.qty);
   // For one Dham, "received" means: arrived directly at the Dham + sent from the central store + from other Dhams.
-  if (f.dhamId != null) out.received = out.received + out.assign_dham + out.transfer_in;
+  // (a transfer that never arrived and was returned comes back to its sender's Dham the same way)
+  if (f.dhamId != null) out.received = out.received + out.assign_dham + out.transfer_in + out.transfer_return;
   return out;
 }
 

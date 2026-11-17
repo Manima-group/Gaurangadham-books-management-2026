@@ -39,7 +39,7 @@ export default async function AvailabilityPage({ searchParams }: { searchParams:
         title="Book Availability"
         crumbs={[{ label: "Home", href: "/dashboard" }, { label: "Book Availability" }]}
         doHere={`Books available right now in ${scopeName}: on the Dham shelf and with devotees. Tap a book to see who has it, with mobile numbers.`}
-        next={u.role === "manager" ? "Need books another Dham has? Ask for them with Dham Transfers." : undefined}
+        next="Need books someone else has? Request them with Books Transfer."
       />
 
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">

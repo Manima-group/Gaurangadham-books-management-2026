@@ -20,7 +20,7 @@ const day = (offset: number) => {
   return d.toISOString().slice(0, 10);
 };
 
-async function person(name: string, role: "admin" | "manager" | "devotee", phone: string, password: string, dhamId: number | null, email?: string) {
+async function person(name: string, role: "admin" | "manager" | "devotee" | "contact", phone: string, password: string, dhamId: number | null, email?: string) {
   const id = randomUUID();
   await db.insert(schema.user).values({
     id,
@@ -96,6 +96,7 @@ async function main() {
     await person("Sita Devi", "devotee", "9000000014", "devotee123", hyd.id),
   ];
   const wglDev = await person("Narayana Murthy", "devotee", "9000000021", "devotee123", wgl.id);
+  await person("Radhika (Outreach)", "contact", "9000000031", "contact123", hyd.id); // Contact Collection Sevak
 
   const mv: (typeof schema.stockMovement.$inferInsert)[] = [];
   const base = { createdBy: adminId, campaignId: drive.id };
@@ -252,6 +253,7 @@ Log in with:
   Chakra Sevak   admin@gaurangadham.org  (or 9000000001) / admin123
   Sector Sevak   9000000002  (Hyderabad Dham)            / manager123
   Devotee        9000000011  (Govinda Sharma, Hyderabad) / devotee123
+  Contact Collection Sevak 9000000031 (Hyderabad)       / contact123
 `);
   void vjw;
   await client.end();

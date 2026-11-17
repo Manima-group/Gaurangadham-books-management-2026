@@ -81,7 +81,7 @@ export async function dhamOverview(onlyDhamId?: number): Promise<DhamOverview[]>
     from dham d
     left join (
       select m.dham_id,
-        sum(m.qty) filter (where m.kind in ('received','assign_dham','transfer_in') and m.to_holder = 'dham:' || m.dham_id) as received,
+        sum(m.qty) filter (where m.kind in ('received','assign_dham','transfer_in','transfer_return') and m.to_holder = 'dham:' || m.dham_id) as received,
         sum(m.qty) filter (where m.kind = 'assign_devotee') as allocated,
         sum(m.qty) filter (where m.kind = 'sold') as sold,
         sum(m.qty) filter (where m.kind = 'returned') as returned,
@@ -159,6 +159,8 @@ export async function dhamDevotees(
         sum(m.qty) filter (where m.kind = 'returned') as returned,
         sum(m.qty) filter (where m.kind = 'damaged') as damaged,
         coalesce(sum(m.qty) filter (where m.kind = 'assign_devotee'),0)
+          + coalesce(sum(m.qty) filter (where m.kind in ('transfer_in','transfer_return') and m.to_holder = 'devotee:' || m.devotee_id),0)
+          - coalesce(sum(m.qty) filter (where m.kind = 'transfer_out' and m.from_holder = 'devotee:' || m.devotee_id),0)
           - coalesce(sum(m.qty) filter (where m.kind in ('sold','returned','damaged')),0) as remaining
       from stock_movement m where ${LIVE} and m.devotee_id is not null group by m.devotee_id
     ) x on x.devotee_id = u.id
@@ -197,7 +199,7 @@ export async function dhamDevotees(
 export async function dhamInventory(dhamId: number) {
   const r = await rows<Row>(sql`
     select b.id, b.title, b.language, b.size,
-      coalesce(sum(m.qty) filter (where m.kind in ('received','assign_dham') and m.to_holder = ${H.dham(dhamId)}),0)::int as received,
+      coalesce(sum(m.qty) filter (where m.kind in ('received','assign_dham','transfer_in','transfer_return') and m.to_holder = ${H.dham(dhamId)}),0)::int as received,
       coalesce(sum(m.qty) filter (where m.kind = 'assign_devotee'),0)::int as allocated,
       coalesce(sum(m.qty) filter (where m.kind = 'sold'),0)::int as sold,
       coalesce(sum(m.qty) filter (where m.kind = 'returned'),0)::int as returned,
@@ -261,7 +263,7 @@ export async function devoteePlaces(devoteeId: string) {
 }
 
 export type HistoryFilter = { from?: string; to?: string; book?: number; kind?: string; status?: string; page?: number };
-export const HISTORY_KINDS = ["assign_devotee", "sold", "returned", "damaged", "correction"] as const;
+export const HISTORY_KINDS = ["assign_devotee", "transfer_in", "transfer_out", "transfer_return", "sold", "returned", "damaged", "correction"] as const;
 
 export async function devoteeHistory(devoteeId: string, f: HistoryFilter) {
   const c: SQL[] = [sql`m.devotee_id = ${devoteeId}`];

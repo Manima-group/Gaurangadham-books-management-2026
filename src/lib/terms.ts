@@ -7,6 +7,7 @@ export const ROLE_LABEL = {
   admin: "Chakra Sevak",
   manager: "Sector Sevak",
   devotee: "Devotee",
+  contact: "Contact Collection Sevak",
 } as const;
 export type Role = keyof typeof ROLE_LABEL;
 
@@ -49,18 +50,40 @@ export const MOVEMENT_LABEL: Record<string, string> = {
   returned: "Returned to Dham",
   damaged: "Damaged / lost",
   correction: "Undone (correction)",
-  transfer_out: "Sent to another Dham",
-  transfer_in: "Received from another Dham",
+  transfer_out: "Books Transfer — sent",
+  transfer_in: "Given to Devotee — Transfer / received",
+  transfer_return: "Books Transfer — returned to sender",
+  transfer_loss: "Books Transfer — written off",
 };
 
 export const SIZE_LABEL: Record<string, string> = { big: "Big book", small: "Small book" };
 export type BookSize = "big" | "small";
 
 export const TRANSFER_STATUS: Record<string, { label: string; tone: Tone; help: string }> = {
-  requested: { label: "Requested", tone: "blue", help: "Waiting for the sending Dham to check and approve." },
-  approved: { label: "Approved", tone: "purple", help: "Approved. Waiting for the sending Dham to send the books." },
-  sent: { label: "Sent — on the way", tone: "amber", help: "Books have left the sending Dham. Confirm when they arrive." },
-  received: { label: "Received", tone: "green", help: "Books reached the requesting Dham. Counts are updated." },
-  declined: { label: "Declined", tone: "red", help: "The sending Dham could not send these books." },
-  cancelled: { label: "Cancelled", tone: "gray", help: "The request was withdrawn." },
+  requested: { label: "Requested", tone: "blue", help: "Waiting for the source Dham's Sector Sevak to check and approve." },
+  approved: { label: "Approved", tone: "purple", help: "Approved copies are reserved. Waiting for the sender to accept and send." },
+  accepted: { label: "Accepted by sender", tone: "purple", help: "The sender is preparing the books." },
+  sent: { label: "Dispatched — on the way", tone: "amber", help: "Books left the sender. The receiver confirms what arrives." },
+  partially_received: { label: "Partially received", tone: "amber", help: "Some copies have not arrived yet. They stay “on the way” until received or reconciled." },
+  disputed: { label: "Disputed", tone: "red", help: "The receiver reported missing, damaged or wrong books. The sending Dham reconciles." },
+  received: { label: "Completed", tone: "green", help: "All books reached the receiver." },
+  completed: { label: "Completed", tone: "green", help: "Every dispatched copy is accounted for." },
+  declined: { label: "Rejected", tone: "red", help: "The source Dham could not give these books." },
+  cancelled: { label: "Cancelled", tone: "gray", help: "The request was withdrawn before dispatch." },
+};
+
+/** Timeline wording for each recorded step. */
+export const TRANSFER_EVENT: Record<string, string> = {
+  requested: "Requested",
+  approved: "Approved",
+  partially_approved: "Partially approved",
+  declined: "Rejected",
+  accepted: "Accepted by sender",
+  sent: "Dispatched",
+  received: "Received",
+  partially_received: "Partially received",
+  disputed: "Received with a problem",
+  reconciled: "Reconciled",
+  completed: "Completed",
+  cancelled: "Cancelled",
 };

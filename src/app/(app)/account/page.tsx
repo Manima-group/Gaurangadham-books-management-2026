@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/session";
+import { requireSignedIn } from "@/lib/session";
 import { ROLE_LABEL } from "@/lib/terms";
 import { logoutAction } from "@/app/actions/auth";
 import { Card, PageHeader } from "@/components/ui";
 import { PasswordForm } from "./form";
 
 export default async function AccountPage() {
-  const u = await requireUser();
+  const u = await requireSignedIn();
   return (
     <>
       <PageHeader title="My Account" crumbs={[{ label: "Home", href: "/dashboard" }, { label: "My Account" }]} doHere="See your details and change your password." />

@@ -127,7 +127,8 @@ function cellText(c: Column, v: unknown) {
 
 export async function toPdf(spec: ReportSpec): Promise<Buffer> {
   const wide = spec.sections.some((s) => s.columns.length > 6);
-  const doc = new PDFDocument({ size: "A4", layout: wide ? "landscape" : "portrait", margin: 36, bufferPages: true, info: { Title: spec.title, Author: APP_NAME } });
+  // font: our own embedded font from the start, so PDFKit never needs its built-in Helvetica data files.
+  const doc = new PDFDocument({ size: "A4", layout: wide ? "landscape" : "portrait", margin: 36, bufferPages: true, font: FONT, info: { Title: spec.title, Author: APP_NAME } });
   doc.registerFont("R", FONT);
   doc.registerFont("B", FONT_BOLD);
   const chunks: Buffer[] = [];

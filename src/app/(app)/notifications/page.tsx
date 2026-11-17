@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { requireUser } from "@/lib/session";
+import { requireSignedIn } from "@/lib/session";
 import { markAllRead } from "@/app/actions/setup";
 import { timeAgo } from "@/lib/format";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { ClearAll, NotifDelete } from "./buttons";
 
 export default async function NotificationsPage() {
-  const u = await requireUser();
+  const u = await requireSignedIn();
   const rows = await db.select().from(schema.notification).where(eq(schema.notification.userId, u.id)).orderBy(desc(schema.notification.createdAt)).limit(50);
   const unread = rows.filter((r) => !r.isRead).length;
   return (

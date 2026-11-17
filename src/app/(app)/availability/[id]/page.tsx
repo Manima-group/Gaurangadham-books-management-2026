@@ -33,7 +33,7 @@ export default async function AvailabilityBookPage({
         title={b ? b.title : "Book not available"}
         crumbs={[{ label: "Home", href: "/dashboard" }, { label: "Book Availability", href: dhamFilter ? `/availability?dham=${dhamFilter}` : "/availability" }, { label: b?.title ?? "Book" }]}
         doHere={b ? `${b.language} · ${SIZE_LABEL[b.size]}. Call or WhatsApp a devotee who has this book, or ask the Dham that has it on the shelf.` : undefined}
-        next={u.role === "manager" && b ? <Link href={`/transfers/new?book=${b.id}`} className="font-semibold text-brand-700 underline">Ask another Dham for this book →</Link> : undefined}
+        next={b ? <Link href={`/transfers/new?book=${b.id}`} className="font-semibold text-brand-700 underline">Request this book with Books Transfer →</Link> : undefined}
       />
       {!b ? (
         <EmptyState icon="📭" title="Nobody has this book right now.">

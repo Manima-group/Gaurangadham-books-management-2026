@@ -10,6 +10,7 @@ import { logActivity, notify, dhamManagers } from "@/lib/activity";
 import { H, holderStock, lockHolders, pendingReportedQty } from "@/lib/stock";
 import { findCampaign } from "@/lib/campaign";
 import { reverseMovements } from "@/lib/ledger";
+import { availableFor } from "@/lib/transfers";
 import { num, todayIST } from "@/lib/format";
 
 const dateField = z
@@ -178,10 +179,11 @@ export async function assignToDevotee(_: ActionState, fd: FormData): Promise<Act
   // Lock the Dham store while checking and taking, so simultaneous assignments can't over-allocate.
   const short = await db.transaction(async (tx) => {
     await lockHolders(tx, [H.dham(dhamId)]);
-    const store = await holderStock(H.dham(dhamId), tx);
+    // Copies approved for a Books Transfer are reserved and can't be given out.
+    const store = await availableFor(H.dham(dhamId), tx);
     const short: Record<string, string> = {};
     for (const l of lines) {
-      const have = store.get(l.bookId) ?? 0;
+      const have = Math.max(store.get(l.bookId) ?? 0, 0);
       if (l.qty > have) short[`qty_${l.bookId}`] = `Only ${num(have)} available in the Dham`;
     }
     if (Object.keys(short).length) return short;
@@ -232,7 +234,7 @@ export async function takeBack(_: ActionState, fd: FormData): Promise<ActionStat
   const date = todayIST();
   const short = await db.transaction(async (tx) => {
     await lockHolders(tx, [H.devotee(devoteeId)]);
-    const hold = await holderStock(H.devotee(devoteeId), tx);
+    const hold = await availableFor(H.devotee(devoteeId), tx); // excludes copies reserved for a Books Transfer
     const pending = await pendingReportedQty(devoteeId, undefined, tx);
     const short: Record<string, string> = {};
     for (const l of lines) {
@@ -274,7 +276,7 @@ export async function undoMovement(_: ActionState, fd: FormData): Promise<Action
   if (!m) return fail("This entry was not found.");
   if (m.reversedBy) return fail("This was already undone.");
   if (m.kind === "correction") return fail("An undo can't be undone. Record the books again instead.");
-  if (m.kind === "transfer_out" || m.kind === "transfer_in") return fail("This is part of a Dham transfer.", "Transfers can't be undone here. Ask the other Dham to send the books back with a new transfer.");
+  if (m.kind.startsWith("transfer_")) return fail("This is part of a Dham transfer.", "Transfers can't be undone here. Ask the other Dham to send the books back with a new transfer.");
   if (m.reportId) return fail("This came from a daily report.", "Delete that report instead — its stock is reversed with it.");
   if (u.role === "manager" && m.dhamId !== u.dhamId) return fail("This belongs to another Dham.");
   if (u.role === "manager" && m.kind === "assign_dham") return fail("Only the Chakra Sevak can undo books sent to a Dham.");

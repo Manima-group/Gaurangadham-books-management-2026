@@ -46,7 +46,7 @@ export async function ManagerDashboard({ user }: { user: AppUser }) {
       .limit(8),
     db.$count(schema.moneySubmission, and(eq(schema.moneySubmission.dhamId, dhamId), eq(schema.moneySubmission.status, "submitted"))).then((n) => [n]),
     // transfers where this Dham must act: approve/send (it has the books) or confirm receipt (it asked)
-    db.$count(t, or(and(eq(t.fromDhamId, dhamId), inArray(t.status, ["requested", "approved"])), and(eq(t.toDhamId, dhamId), eq(t.status, "sent")))),
+    db.$count(t, or(and(eq(t.fromDhamId, dhamId), inArray(t.status, ["requested", "approved", "accepted"])), and(eq(t.toDhamId, dhamId), inArray(t.status, ["sent", "partially_received", "disputed"])))),
   ]);
   const submitted = new Map(todays.filter((t) => t.status !== "draft").map((t) => [t.devoteeId, t.status]));
   const missing = devotees.filter((d) => !submitted.has(d.id));
@@ -58,7 +58,7 @@ export async function ManagerDashboard({ user }: { user: AppUser }) {
   const todo: Todo[] = [];
   if (o.reportsAwaiting) todo.push({ href: "/reports?status=submitted", icon: "📝", tone: "red", text: <><b>{num(o.reportsAwaiting)}</b> report{o.reportsAwaiting > 1 ? "s" : ""} waiting for your review</>, action: "Review" });
   if (unconfirmed) todo.push({ href: "/money?status=submitted", icon: "💰", text: <><b>{unconfirmed}</b> money submission{unconfirmed > 1 ? "s" : ""} to confirm as received</>, action: "Confirm" });
-  if (transfersForMe) todo.push({ href: "/transfers", icon: "🚚", text: <><b>{transfersForMe}</b> Dham transfer{transfersForMe > 1 ? "s" : ""} waiting for you</>, action: "Open" });
+  if (transfersForMe) todo.push({ href: "/transfers", icon: "🚚", text: <><b>{transfersForMe}</b> book transfer{transfersForMe > 1 ? "s" : ""} waiting for you</>, action: "Open" });
   if (missing.length) todo.push({ href: "#not-reported", icon: "🙋", text: <><b>{missing.length} of {devotees.length}</b> devotees have not reported today<span className="block truncate text-xs text-ink-500">{missing.map((m) => m.name).join(", ")}</span></>, action: "Call" });
   if (o.pendingMoney) todo.push({ href: "/pending", icon: "⏳", text: <><b>{inr(o.pendingMoney)}</b> collected but not yet handed over</>, action: "See" });
 

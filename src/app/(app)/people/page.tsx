@@ -14,20 +14,20 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
   const u = await requireUser("admin", "manager");
   const sp = await searchParams;
   const isAdmin = u.role === "admin";
-  const allowed = isAdmin ? ["manager", "devotee", "admin"] : ["devotee", "manager"];
+  const allowed = isAdmin ? ["manager", "devotee", "contact", "admin"] : ["devotee", "manager", "contact"];
   const role = (allowed.includes(sp.role ?? "") ? sp.role : "devotee") as Role;
   const c: SQL[] = [eq(schema.user.role, role)];
   if (!isAdmin) c.push(eq(schema.user.dhamId, u.dhamId!));
   else if (sp.dham) c.push(eq(schema.user.dhamId, Number(sp.dham)));
   const mayManage = (p: { id: string; role: string; isCoSevak: boolean }) =>
-    isAdmin || (p.id !== u.id && (p.role === "devotee" || (p.role === "manager" && p.isCoSevak)));
+    isAdmin || (p.id !== u.id && (p.role === "devotee" || p.role === "contact" || (p.role === "manager" && p.isCoSevak)));
   const [people, dhams, all] = await Promise.all([
     db.select().from(schema.user).where(and(...c)).orderBy(asc(schema.user.name)),
     activeDhams(),
     allDhams(),
   ]);
   const dn = new Map(all.map((d) => [d.id, d.name]));
-  const label = { manager: "Sector Sevaks", devotee: "Devotees", admin: "Chakra Sevaks" }[role];
+  const label = { manager: "Sector Sevaks", devotee: "Devotees", admin: "Chakra Sevaks", contact: "Contact Collection Sevaks" }[role];
 
   return (
     <>
@@ -41,7 +41,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
         {(allowed as Role[]).map((r) => (
           <Link key={r} href={`/people?role=${r}`} className={`btn-sm ${role === r ? "btn-primary" : "btn-secondary"}`}>{ROLE_LABEL[r]}s</Link>
         ))}
-        {isAdmin && role !== "admin" && (
+        {isAdmin && (role === "manager" || role === "devotee") && (
           <span className="ml-auto flex flex-wrap items-center gap-2 text-sm">
             <span className="font-semibold text-ink-700">Book Availability for all {label.toLowerCase()}:</span>
             <form action={setAvailabilityForRole}><input type="hidden" name="role" value={role} /><input type="hidden" name="on" value="1" /><button className="btn-secondary btn-sm">Give access</button></form>
@@ -87,7 +87,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {isAdmin && p.role !== "admin" && (
+                      {isAdmin && (p.role === "manager" || p.role === "devotee") && (
                         <form action={toggleAvailability}>
                           <input type="hidden" name="id" value={p.id} />
                           <button className="btn-secondary btn-sm">{p.canSeeAvailability ? "Remove Availability" : "Allow Availability"}</button>
