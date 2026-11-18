@@ -60,6 +60,8 @@ export const NAV: Record<Role, NavItem[]> = {
     { href: "/my/history", label: "Sales & History", icon: "🕘" },
     { href: "/transfers", label: "Books Transfer", icon: "🚚" },
     { href: "/availability", label: "Book Availability", icon: "🔎", needs: "availability" },
+    { href: "/contacts/new", label: "Collect Contacts", icon: "➕", group: "Outreach" },
+    { href: "/contacts/mine", label: "My Contacts", icon: "📇", group: "Outreach" },
   ],
   // Contact Collection Sevak: outreach only — nothing about books, stock or money.
   contact: [

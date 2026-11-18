@@ -7,7 +7,7 @@ import { ContactList } from "../list";
 
 /** My Contacts — only the records this person collected, with search and dates. */
 export default async function MyContactsPage({ searchParams }: { searchParams: Promise<ContactFilter> }) {
-  const u = await requireUser("contact", "manager", "admin");
+  const u = await requireUser("contact", "devotee", "manager", "admin");
   const sp = await searchParams;
   const f = { q: sp.q, from: sp.from, to: sp.to, page: sp.page };
   const data = await listContacts(u, f, true);

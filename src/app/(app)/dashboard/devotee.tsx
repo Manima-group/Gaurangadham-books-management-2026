@@ -9,10 +9,11 @@ import { Alert, EmptyState, ReportStatus } from "@/components/ui";
 import { QueuedToday } from "@/components/queued-today";
 import { BookList, BookTotals } from "@/components/mybooks";
 import { listTransfers, needsMe } from "@/lib/transfers";
+import { contactStats } from "@/lib/outreach";
 
 export async function DevoteeDashboard({ user }: { user: AppUser }) {
   const today = todayIST();
-  const [books, money, [todayReport], places, transfers] = await Promise.all([
+  const [books, money, [todayReport], places, transfers, contacts] = await Promise.all([
     devoteeBooks(user.id),
     moneySummary({ devoteeId: user.id }),
     db.select().from(schema.dailyReport).where(and(eq(schema.dailyReport.devoteeId, user.id), eq(schema.dailyReport.reportDate, today))),
@@ -24,6 +25,7 @@ export async function DevoteeDashboard({ user }: { user: AppUser }) {
       .orderBy(desc(schema.dailyReport.reportDate), desc(schema.dailyReportVenue.id))
       .limit(3),
     listTransfers(user),
+    contactStats(user, {}, true), // own records only (collector_id = me)
   ]);
   const myTurn = transfers.rows.filter((t) => needsMe(user, t));
   const sent = todayReport && todayReport.status !== "draft";
@@ -113,6 +115,15 @@ export async function DevoteeDashboard({ user }: { user: AppUser }) {
           )}
         </>
       )}
+      {/* Outreach — same contact form as the Contact Collection Sevak */}
+      <section className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-card ring-1 ring-stone-200/70" data-testid="my-contacts-card">
+        <Link href="/contacts/mine" className="min-w-0 flex-1">
+          <span className="block text-xs font-semibold text-ink-500">Contacts Collected by Me</span>
+          <span className="font-display text-2xl font-extrabold tabular-nums" data-testid="my-contacts-count">{num(contacts.total)}</span>
+          {contacts.today > 0 && <span className="ml-2 text-sm text-ink-500">{num(contacts.today)} today</span>}
+        </Link>
+        <Link href="/contacts/new" className="btn-secondary btn-sm shrink-0">➕ Collect Contacts</Link>
+      </section>
       {!user.dhamId && <Alert tone="amber" title="You are not linked to a Dham yet.">Please contact your Chakra Sevak.</Alert>}
     </div>
   );
