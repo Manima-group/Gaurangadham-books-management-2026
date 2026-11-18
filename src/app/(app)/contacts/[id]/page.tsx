@@ -12,7 +12,7 @@ import { eventsFor } from "../data";
 
 /** One contact: details, consent, who collected it, duplicate review, corrections and deletion. */
 export default async function ContactPage({ params }: { params: Promise<{ id: string }> }) {
-  const u = await requireUser("contact", "manager", "admin");
+  const u = await requireUser("contact", "devotee", "manager", "admin");
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
   const [c] = await db.select().from(schema.outreachContact).where(eq(schema.outreachContact.id, id));
@@ -28,12 +28,13 @@ export default async function ContactPage({ params }: { params: Promise<{ id: st
   // The earlier record with the same number is shown only if this person may see it.
   const [other] = c.duplicateOf ? await db.select().from(schema.outreachContact).where(eq(schema.outreachContact.id, c.duplicateOf)) : [];
   const dup = DUP_LABEL[c.dupStatus];
-  const back = u.role === "contact" ? "/contacts/mine" : "/contacts";
+  const collectorOnly = u.role === "contact" || u.role === "devotee";
+  const back = collectorOnly ? "/contacts/mine" : "/contacts";
   return (
     <>
       <PageHeader
         title={c.fullName}
-        crumbs={[{ label: "Home", href: "/dashboard" }, { label: u.role === "contact" ? "My Contacts" : "Outreach Contacts", href: back }, { label: c.fullName }]}
+        crumbs={[{ label: "Home", href: "/dashboard" }, { label: collectorOnly ? "My Contacts" : "Outreach Contacts", href: back }, { label: c.fullName }]}
         doHere="Correct the details if something was typed wrongly. Consent and who collected the contact are kept automatically."
       />
       <div className="mb-4 flex flex-wrap gap-2">

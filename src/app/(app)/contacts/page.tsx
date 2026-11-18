@@ -14,8 +14,8 @@ import { eventsFor } from "./data";
 
 /** Outreach Contacts for Chakra Sevak (all Dhams) and Sector Sevak (own Dham): records, filters, duplicate review, events. */
 export default async function ContactsPage({ searchParams }: { searchParams: Promise<ContactFilter> }) {
-  const u = await requireUser("contact", "manager", "admin");
-  if (u.role === "contact") redirect("/contacts/mine");
+  const u = await requireUser("contact", "devotee", "manager", "admin");
+  if (u.role === "contact" || u.role === "devotee") redirect("/contacts/mine");
   const sp = await searchParams;
   const keep = { q: sp.q, from: sp.from, to: sp.to, dham: sp.dham, collector: sp.collector, event: sp.event, interest: sp.interest, dup: sp.dup, consent: sp.consent };
   const [data, stats, dhams, collectors, events] = await Promise.all([

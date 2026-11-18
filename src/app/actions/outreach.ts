@@ -56,7 +56,7 @@ async function audit(contactId: number, userId: string, action: string) {
 
 /** Add a contact. A repeated tap (same form key) is saved once. A number already on file is flagged for review. */
 export async function addContact(_: ActionState, fd: FormData): Promise<ActionState> {
-  const u = await requireUser("contact", "manager", "admin");
+  const u = await requireUser("contact", "devotee", "manager", "admin");
   const parsed = read(fd);
   if (!parsed.success) return fromZod(parsed.error, "Please check the highlighted fields.");
   const d = parsed.data;
@@ -103,7 +103,7 @@ export async function addContact(_: ActionState, fd: FormData): Promise<ActionSt
 }
 
 export async function updateContact(_: ActionState, fd: FormData): Promise<ActionState> {
-  const u = await requireUser("contact", "manager", "admin");
+  const u = await requireUser("contact", "devotee", "manager", "admin");
   const id = Number(fd.get("id"));
   const [c] = await db.select().from(schema.outreachContact).where(eq(schema.outreachContact.id, id));
   if (!c || !canEditContact(u, c)) return fail("This contact was not found.");
@@ -125,7 +125,7 @@ export async function updateContact(_: ActionState, fd: FormData): Promise<Actio
 }
 
 export async function deleteContact(_: ActionState, fd: FormData): Promise<ActionState> {
-  const u = await requireUser("contact", "manager", "admin");
+  const u = await requireUser("contact", "devotee", "manager", "admin");
   const id = Number(fd.get("id"));
   const [c] = await db.select().from(schema.outreachContact).where(eq(schema.outreachContact.id, id));
   if (!c || !canSeeContact(u, c)) return fail("This contact was not found.");
