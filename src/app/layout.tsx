@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import { IntroSplash } from "@/components/intro";
 import { RegisterSW } from "@/components/pwa";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <RegisterSW />
         {children}
         <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
