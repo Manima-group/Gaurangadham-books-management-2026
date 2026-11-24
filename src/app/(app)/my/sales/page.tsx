@@ -127,6 +127,7 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
           initDay={initDay}
           initCollected={report && report.collectedPaise !== report.salesPaise ? report.collectedPaise : undefined}
           initRemarks={report?.remarks ?? undefined}
+          initPay={report?.paymentMode ? { mode: report.paymentMode, cash: report.cashPaise, upi: report.upiPaise } : undefined}
           userId={u.id}
           pastVenues={past.map((p) => p.name)}
         />

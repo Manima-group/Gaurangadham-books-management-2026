@@ -15,6 +15,7 @@ export const COLUMNS = [
   { key: "sku", header: "Book Code", required: false, example: "BG-EN", help: "Short unique code. Leave empty to create one automatically." },
   { key: "size", header: "Size", required: false, example: "Big", help: "Big or Small. Empty = Small." },
   { key: "qty", header: "Copies Received", required: false, example: 50, help: "Copies that arrived now. They are added to the Central Store. Empty = 0." },
+  { key: "source", header: "Stock Source", required: false, example: "Temple Store", help: "Needed when Copies Received is more than 0: Temple Store or External Central." },
   { key: "coverUrl", header: "Cover Image URL", required: false, example: "", help: "Optional link to a picture of the cover (https://…)." },
 ] as const;
 type Key = (typeof COLUMNS)[number]["key"];
@@ -27,8 +28,18 @@ const ALIASES: Record<Key, string[]> = {
   sku: ["book code", "code", "sku", "book id"],
   size: ["size", "book size", "type"],
   qty: ["copies received", "copies", "quantity", "qty", "stock", "opening stock", "received"],
+  source: ["stock source", "source", "origin", "stock origin"],
   coverUrl: ["cover image url", "cover", "cover url", "image", "image url"],
 };
+
+/** "Temple Store" / "External Central" (and short forms) → lot source. */
+export function parseSource(v: string | undefined): "temple_store" | "external_central" | null | "bad" {
+  const s = (v ?? "").trim().toLowerCase().replace(/[^a-z]/g, "");
+  if (!s) return null;
+  if (["templestore", "temple", "ts"].includes(s)) return "temple_store";
+  if (["externalcentral", "external", "ec", "centralexternal"].includes(s)) return "external_central";
+  return "bad";
+}
 
 export const MAX_ROWS = 1000;
 export const MAX_BYTES = 2 * 1024 * 1024;
@@ -117,6 +128,7 @@ export type PreviewRow = {
   row: number;
   action: "new" | "update" | "error";
   title: string; language: string; sku: string; size: "big" | "small"; pricePaise: number; qty: number; coverUrl: string | null;
+  source: "temple_store" | "external_central" | null;
   bookId?: number; oldPricePaise?: number; codeMade?: boolean;
   errors: string[];
 };
@@ -154,6 +166,9 @@ export function checkRows(raw: RawRow[], existing: Existing[]): PreviewRow[] {
     const qty = qtyRaw ? Number(qtyRaw) : 0;
     if (qtyRaw && (!Number.isInteger(qty) || qty < 0)) errors.push(`Copies Received “${r.qty}” must be a whole number`);
     if (qty > 1_000_000) errors.push("Copies Received looks too high");
+    const source = parseSource(r.source);
+    if (source === "bad") errors.push(`Stock Source “${r.source}” must be Temple Store or External Central`);
+    else if (qty > 0 && !source) errors.push("Stock Source is empty — write Temple Store or External Central for the copies received");
     const coverUrl = (r.coverUrl ?? "").trim() || null;
     if (coverUrl && !/^https?:\/\/\S+$/i.test(coverUrl)) errors.push("Cover Image URL must start with http:// or https://");
 
@@ -182,6 +197,7 @@ export function checkRows(raw: RawRow[], existing: Existing[]): PreviewRow[] {
       row: r.row,
       action: errors.length ? "error" : match ? "update" : "new",
       title, language, sku, size: size as "big" | "small", pricePaise: Number.isFinite(pricePaise) ? pricePaise : 0, qty: Number.isInteger(qty) ? qty : 0, coverUrl,
+      source: source === "bad" ? null : source,
       bookId: match?.id, oldPricePaise: match?.pricePaise, codeMade, errors,
     });
   }
@@ -204,15 +220,16 @@ export async function sampleWorkbook() {
     cell.note = `${req ? "Required. " : "Optional. "}${COLUMNS[n - 1].help}`;
   });
   const examples = [
-    { title: "Bhagavad Gita As It Is", language: "English", price: 350, sku: "BG-EN", size: "Big", qty: 50, coverUrl: "" },
-    { title: "Bhagavad Gita As It Is", language: "Telugu", price: 300, sku: "BG-TE", size: "Big", qty: 40, coverUrl: "" },
-    { title: "Sri Isopanisad", language: "Hindi", price: 60, sku: "", size: "Small", qty: 100, coverUrl: "" },
-    { title: "The Science of Self-Realization", language: "English", price: 180, sku: "", size: "Small", qty: "", coverUrl: "" },
+    { title: "Bhagavad Gita As It Is", language: "English", price: 350, sku: "BG-EN", size: "Big", qty: 50, source: "Temple Store", coverUrl: "" },
+    { title: "Bhagavad Gita As It Is", language: "Telugu", price: 300, sku: "BG-TE", size: "Big", qty: 40, source: "External Central", coverUrl: "" },
+    { title: "Sri Isopanisad", language: "Hindi", price: 60, sku: "", size: "Small", qty: 100, source: "Temple Store", coverUrl: "" },
+    { title: "The Science of Self-Realization", language: "English", price: 180, sku: "", size: "Small", qty: "", source: "", coverUrl: "" },
   ];
   examples.forEach((e) => ws.addRow(e));
   ws.getColumn("price").numFmt = "#,##0.00";
   ws.getColumn("qty").numFmt = "0";
   for (let r = 2; r <= 500; r++) ws.getCell(`E${r}`).dataValidation = { type: "list", allowBlank: true, formulae: ['"Big,Small"'], showErrorMessage: true, errorTitle: "Size", error: "Choose Big or Small" };
+  for (let r = 2; r <= 500; r++) ws.getCell(`G${r}`).dataValidation = { type: "list", allowBlank: true, formulae: ['"Temple Store,External Central"'], showErrorMessage: true, errorTitle: "Stock Source", error: "Choose Temple Store or External Central" };
   const help = wb.addWorksheet("How to fill");
   help.columns = [{ header: "Column", key: "c", width: 22 }, { header: "Required?", key: "r", width: 12 }, { header: "What to type", key: "h", width: 80 }];
   help.getRow(1).font = { bold: true };

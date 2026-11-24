@@ -40,6 +40,27 @@ export const METHOD_LABEL: Record<string, string> = {
   cash: "Cash (handed over)",
   upi: "UPI",
   bank: "Bank transfer",
+  split: "Cash + UPI",
+};
+
+/** How money was received at a sale. */
+export const PAY_MODE_LABEL: Record<string, string> = { cash: "Cash", upi: "UPI", split: "Split (Cash + UPI)" };
+
+export const APPROVAL_LABEL: Record<string, { label: string; tone: Tone }> = {
+  pending: { label: "Awaiting Sector Sevak Approval", tone: "amber" },
+  approved: { label: "Approved", tone: "green" },
+  rejected: { label: "Not approved", tone: "red" },
+};
+
+export const STALL_STATUS: Record<string, { label: string; tone: Tone; help: string }> = {
+  draft: { label: "Getting ready", tone: "gray", help: "Invite devotees and add books. Selling starts when the coordinator opens the stall." },
+  active: { label: "Selling", tone: "blue", help: "Record each sale by book and quantity." },
+  closing: { label: "Closing", tone: "amber", help: "Books counted. Everyone confirms what they take home." },
+  disputed: { label: "Needs review", tone: "red", help: "Someone disagreed with the closing. A Sector Sevak will sort it out." },
+  pending_approval: { label: "Waiting for Sector Sevak", tone: "purple", help: "Everyone confirmed. The Sector Sevak of each Dham approves the closing." },
+  pending_settlement: { label: "Money to hand over", tone: "amber", help: "Books are settled. Whoever received money hands it over with Submit Money." },
+  closed: { label: "Closed", tone: "green", help: "Books and money are settled." },
+  cancelled: { label: "Cancelled", tone: "gray", help: "Cancelled before any sale. Books were released." },
 };
 
 export const MOVEMENT_LABEL: Record<string, string> = {
@@ -54,6 +75,7 @@ export const MOVEMENT_LABEL: Record<string, string> = {
   transfer_in: "Given to Devotee — Transfer / received",
   transfer_return: "Books Transfer — returned to sender",
   transfer_loss: "Books Transfer — written off",
+  stall_transfer: "Shared stall — handed to another devotee",
 };
 
 export const SIZE_LABEL: Record<string, string> = { big: "Big book", small: "Small book" };

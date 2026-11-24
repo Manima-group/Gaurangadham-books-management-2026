@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/session";
 import { logActivity } from "@/lib/activity";
 import { H, lockHolders } from "@/lib/stock";
 import { findCampaign } from "@/lib/campaign";
+import { createLot, insertMovements } from "@/lib/lots";
 import { num, todayIST } from "@/lib/format";
 import { checkRows, MAX_BYTES, readBookFile, type PreviewRow, type RawRow } from "@/lib/book-import";
 
@@ -48,14 +49,14 @@ export async function importBooks(fd: FormData): Promise<ImportResult> {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext('book-import'))`); // one import at a time
       const rows = checkRows(raw, await tx.select({ id: schema.book.id, sku: schema.book.sku, title: schema.book.title, language: schema.book.language, pricePaise: schema.book.pricePaise, size: schema.book.size }).from(schema.book));
       if (rows.some((r) => r.action === "error")) return { ok: false as const, error: "Some rows have problems. Please fix them in the file and upload it again.", rows };
-      const receipts: { bookId: number; qty: number; title: string }[] = [];
+      const receipts: { bookId: number; qty: number; title: string; source: "temple_store" | "external_central" }[] = [];
       let added = 0, updated = 0, priceChanged = 0;
       for (const r of rows) {
         if (r.action === "new") {
           const [b] = await tx.insert(schema.book).values({ title: r.title, language: r.language, sku: r.sku, size: r.size, pricePaise: r.pricePaise, coverUrl: r.coverUrl }).returning({ id: schema.book.id });
           await tx.insert(schema.bookPriceHistory).values({ bookId: b.id, newPricePaise: r.pricePaise, changedBy: u.id });
           added++;
-          if (r.qty > 0) receipts.push({ bookId: b.id, qty: r.qty, title: r.title });
+          if (r.qty > 0) receipts.push({ bookId: b.id, qty: r.qty, title: r.title, source: r.source! });
         } else {
           await tx.update(schema.book).set({ title: r.title, language: r.language, size: r.size, pricePaise: r.pricePaise, ...(r.coverUrl ? { coverUrl: r.coverUrl } : {}) }).where(eq(schema.book.id, r.bookId!));
           if (r.oldPricePaise !== r.pricePaise) {
@@ -63,16 +64,21 @@ export async function importBooks(fd: FormData): Promise<ImportResult> {
             priceChanged++;
           }
           updated++;
-          if (r.qty > 0) receipts.push({ bookId: r.bookId!, qty: r.qty, title: r.title });
+          if (r.qty > 0) receipts.push({ bookId: r.bookId!, qty: r.qty, title: r.title, source: r.source! });
         }
       }
       if (receipts.length) {
         await lockHolders(tx, [H.central]);
         const campaign = await findCampaign(null, date);
-        await tx.insert(schema.stockMovement).values(receipts.map((x) => ({
-          kind: "received" as const, bookId: x.bookId, qty: x.qty, fromHolder: "external", toHolder: H.central, dhamId: null,
-          campaignId: campaign?.id, movementDate: date, reference: `Excel import: ${file}`, note: "Added from Excel book list", createdBy: u.id,
-        })));
+        const moves = [];
+        for (const x of receipts) {
+          const lotId = await createLot(tx, { bookId: x.bookId, source: x.source, qty: x.qty, into: H.central, reference: `Excel import: ${file}`, by: u.id });
+          moves.push({
+            kind: "received" as const, bookId: x.bookId, qty: x.qty, fromHolder: "external", toHolder: H.central, dhamId: null,
+            campaignId: campaign?.id, movementDate: date, reference: `Excel import: ${file}`, note: "Added from Excel book list", createdBy: u.id, lotId,
+          });
+        }
+        await insertMovements(tx, moves);
       }
       return { ok: true as const, added, updated, priceChanged, copies: receipts.reduce((a, x) => a + x.qty, 0) };
     });

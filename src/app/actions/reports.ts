@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
+import { stallReservedFor } from "@/lib/stalls";
 import { fail, ok, type ActionState } from "@/lib/action";
 import { requireUser } from "@/lib/session";
 import { dhamManagers, logActivity, notify } from "@/lib/activity";
@@ -87,6 +88,7 @@ export async function saveSalesReport(_: ActionState, fd: FormData): Promise<Act
 
     const hold = await holderStock(H.devotee(u.id), tx);
     const pending = await pendingReportedQty(u.id, existing?.id, tx);
+    for (const [b, q] of await stallReservedFor(H.devotee(u.id), tx)) pending.set(b, (pending.get(b) ?? 0) + q);
     const lineErrors: Record<string, string> = {};
     const totals = new Map<number, { sold: number; returned: number; damaged: number; opening: number }>();
     for (const bookId of bookIds) {
@@ -109,6 +111,17 @@ export async function saveSalesReport(_: ActionState, fd: FormData): Promise<Act
     const collectedRaw = String(fd.get("collected") ?? "").trim();
     const collectedPaise = collectedRaw === "" ? salesPaise : toPaise(collectedRaw);
     if (!(collectedPaise >= 0)) return fail("Please enter the money collected as a number, or leave it empty.", undefined, { collected: "Enter an amount in ₹" });
+    // How the money came: cash, UPI, or both. Split must add up exactly (integer paise).
+    const payMode = fd.get("payMode") === "upi" ? "upi" : fd.get("payMode") === "split" ? "split" : "cash";
+    let cashPaise = payMode === "cash" ? collectedPaise : 0;
+    let upiPaise = payMode === "upi" ? collectedPaise : 0;
+    if (payMode === "split") {
+      cashPaise = toPaise(String(fd.get("cashPart") ?? "0") || "0");
+      upiPaise = toPaise(String(fd.get("upiPart") ?? "0") || "0");
+      if (!(cashPaise >= 0 && upiPaise >= 0)) return fail("Please enter the cash and UPI parts as numbers.", undefined, { cashPart: "Enter amounts in ₹" });
+      if (cashPaise + upiPaise !== collectedPaise)
+        return fail("Cash + UPI must equal the money collected.", `Cash ${inr(cashPaise)} + UPI ${inr(upiPaise)} = ${inr(cashPaise + upiPaise)}, but collected is ${inr(collectedPaise)}.`, { cashPart: "Parts don't add up" });
+    }
     if (intent === "submit" && !anyActivity && !remarks)
       return fail(
         "Nothing to send yet.",
@@ -128,6 +141,9 @@ export async function saveSalesReport(_: ActionState, fd: FormData): Promise<Act
       totalSold,
       salesPaise,
       collectedPaise,
+      paymentMode: payMode as "cash" | "upi" | "split",
+      cashPaise,
+      upiPaise,
       remarks,
       submittedAt: status === "draft" ? null : new Date(),
       reviewedBy: selfApprove ? u.id : null,

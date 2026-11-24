@@ -2,6 +2,7 @@ import "server-only";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { schema } from "@/db";
 import { H, holderStock, lockHolders, type Exec } from "./stock";
+import { insertMovements } from "./lots";
 
 /* A drizzle transaction (kept loose so both db.transaction tx types fit). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,7 +36,7 @@ export async function postReport(tx: Tx, r: Report, lines: Line[], actorId: stri
     if (p.returned) moves.push({ ...base, bookId, kind: "returned" as const, qty: p.returned, toHolder: H.dham(r.dhamId) });
     if (p.damaged) moves.push({ ...base, bookId, kind: "damaged" as const, qty: p.damaged, toHolder: "damaged" });
   }
-  if (moves.length) await tx.insert(schema.stockMovement).values(moves);
+  if (moves.length) await insertMovements(tx, moves);
 }
 
 /** Does the devotee still hold enough copies for these lines? */
@@ -94,6 +95,8 @@ export async function reverseMovements(tx: Tx, ids: number[], actorId: string, n
         movementDate: m.movementDate,
         note: `${note} (undo of #${m.id})`,
         createdBy: actorId,
+        lotId: m.lotId,
+        stallId: m.stallId,
       })
       .returning({ id: schema.stockMovement.id });
     await tx.update(schema.stockMovement).set({ reversedBy: c.id }).where(eq(schema.stockMovement.id, m.id));

@@ -7,6 +7,7 @@ const one = async (q: ReturnType<typeof sql>) => Number(((await db.execute(q)) a
 
 /** Small red counts in the menu: things waiting for this person. One cheap query each. */
 export async function navBadges(u: AppUser): Promise<Record<string, number>> {
+  if (u.approvalStatus !== "approved") return {};
   const me = u.id;
   const dham = u.dhamId ?? -1;
   // Transfers waiting for this person, mirroring needsMe() in lib/transfers.

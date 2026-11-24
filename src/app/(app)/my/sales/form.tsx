@@ -53,6 +53,7 @@ export function SalesForm({
   initDay,
   initCollected,
   initRemarks,
+  initPay,
   userId,
   pastVenues,
 }: {
@@ -62,6 +63,7 @@ export function SalesForm({
   initDay: DayInit;
   initCollected?: number;
   initRemarks?: string;
+  initPay?: { mode: "cash" | "upi" | "split"; cash: number | null; upi: number | null };
   userId: string;
   pastVenues: string[];
 }) {
@@ -79,6 +81,9 @@ export function SalesForm({
   const [showDay, setShowDay] = useState(() => Object.values(initDay).some((v) => v.returned || v.damaged));
   const [showMoney, setShowMoney] = useState(initCollected != null);
   const [collected, setCollected] = useState(initCollected != null ? String(initCollected / 100) : "");
+  const [payMode, setPayMode] = useState<"cash" | "upi" | "split">(initPay?.mode ?? "cash");
+  const [cashPart, setCashPart] = useState(initPay?.mode === "split" && initPay.cash != null ? String(initPay.cash / 100) : "");
+  const [upiPart, setUpiPart] = useState(initPay?.mode === "split" && initPay.upi != null ? String(initPay.upi / 100) : "");
   const [open, setOpen] = useState(0); // which place card is expanded
 
   const usedOf = (bookId: number, skipVenue?: number) =>
@@ -278,6 +283,30 @@ export function SalesForm({
               <input id="collected" name="collected" inputMode="decimal" value={collected} onChange={(e) => setCollected(e.target.value)} placeholder="Leave empty = same as sales" className="field-input text-lg font-bold" />
             </div>
           )}
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-semibold">How was the money received?</legend>
+            <div className="grid grid-cols-3 gap-2">
+              {([["cash", "💵 Cash"], ["upi", "📲 UPI"], ["split", "💵+📲 Both"]] as const).map(([m, l]) => (
+                <label key={m} className={`tap flex cursor-pointer items-center justify-center rounded-xl border px-2 py-2.5 text-sm font-semibold ${payMode === m ? "border-brand-500 bg-brand-50 text-brand-700" : "border-stone-300 bg-white"}`}>
+                  <input type="radio" name="payMode" value={m} checked={payMode === m} onChange={() => setPayMode(m)} className="sr-only" data-testid={`pay-${m}`} />{l}
+                </label>
+              ))}
+            </div>
+            {payMode === "split" && (() => {
+              const total = showMoney && collected.trim() !== "" ? Math.round(Number(collected) * 100) : totals.amount;
+              const sum = Math.round((Number(cashPart) || 0) * 100) + Math.round((Number(upiPart) || 0) * 100);
+              return (
+                <div className="space-y-1.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="text-sm">Cash (₹)<input name="cashPart" inputMode="decimal" value={cashPart} onChange={(e) => setCashPart(e.target.value)} className={`field-input ${state.fieldErrors?.cashPart ? "border-red-500" : ""}`} data-testid="cash-part" /></label>
+                    <label className="text-sm">UPI (₹)<input name="upiPart" inputMode="decimal" value={upiPart} onChange={(e) => setUpiPart(e.target.value)} className={`field-input ${state.fieldErrors?.cashPart ? "border-red-500" : ""}`} data-testid="upi-part" /></label>
+                  </div>
+                  <p className={`text-sm ${sum === total ? "text-emerald-700" : "text-amber-700"}`}>Cash + UPI = {rupees(sum)} · must be {rupees(total)}</p>
+                  {state.fieldErrors?.cashPart && <p className="text-sm font-medium text-red-700">{state.fieldErrors.cashPart}</p>}
+                </div>
+              );
+            })()}
+          </fieldset>
           <div className="space-y-1.5">
             <label htmlFor="remarks" className="text-sm font-semibold">Note <span className="font-normal text-ink-500">(optional)</span></label>
             <textarea id="remarks" name="remarks" rows={2} defaultValue={initRemarks} className={`field-input ${state.fieldErrors?.remarks ? "border-red-500" : ""}`} placeholder="e.g. Rain in the evening, a donation of ₹100" />

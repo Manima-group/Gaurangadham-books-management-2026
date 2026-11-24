@@ -1,5 +1,6 @@
 import "server-only";
 import { sql, type SQL } from "drizzle-orm";
+import { stallCollectedInDham } from "./stalls";
 import { db } from "@/db";
 import { movementTotals, scopeStock, total } from "./stock";
 
@@ -61,12 +62,23 @@ export async function moneySummary(f: Filters) {
            coalesce(sum(amount_paise) filter (where status = 'received'),0)::bigint as received,
            count(*) filter (where status = 'submitted')::int as unconfirmed
     from money_submission where ${moneyWhere(f)}`);
-  const collected = Number(r.collected);
+  // Money received at Shared Book Stalls counts as collected by the person who received it (no Drive on stalls).
+  const sc: SQL[] = [sql`true`];
+  if (f.devoteeId) sc.push(sql`ss.recipient_id = ${f.devoteeId}`);
+  if (f.dhamId != null) sc.push(sql`su.dham_id = ${f.dhamId}`);
+  if (f.from) sc.push(sql`(ss.created_at at time zone 'Asia/Kolkata')::date >= ${f.from}`);
+  if (f.to) sc.push(sql`(ss.created_at at time zone 'Asia/Kolkata')::date <= ${f.to}`);
+  const [st] = f.campaignId
+    ? [{ c: 0 }]
+    : await rows<{ c: number }>(sql`select coalesce(sum(ss.total_paise),0)::bigint as c from stall_sale ss join "user" su on su.id = ss.recipient_id where ${sql.join(sc, sql` and `)}`);
+  const stallCollected = Number(st.c);
+  const collected = Number(r.collected) + stallCollected;
   const submitted = Number(m.submitted);
   return {
     salesApproved: Number(r.sales_approved),
     salesPending: Number(r.sales_pending),
     collected,
+    stallCollected,
     submitted,
     receivedConfirmed: Number(m.received),
     unconfirmedSubmissions: Number(m.unconfirmed),
@@ -130,7 +142,7 @@ export async function dhamHealth(today: string) {
       (select count(*) from "user" u where u.dham_id = d.id and u.role = 'devotee' and u.is_active)::int as devotees,
       (select count(*) from daily_report r where r.dham_id = d.id and r.report_date = ${today} and r.status <> 'draft')::int as reported_today,
       (select count(*) from daily_report r where r.dham_id = d.id and r.status = 'submitted')::int as awaiting,
-      (select coalesce(sum(collected_paise),0) from daily_report r where r.dham_id = d.id and r.status in ('submitted','approved','changes_required'))::bigint as collected,
+      ((select coalesce(sum(collected_paise),0) from daily_report r where r.dham_id = d.id and r.status in ('submitted','approved','changes_required')) + ${stallCollectedInDham(sql`d.id`)})::bigint as collected,
       (select coalesce(sum(amount_paise),0) from money_submission m where m.dham_id = d.id and m.status <> 'disputed')::bigint as submitted,
       (select coalesce(sum(sales_paise),0) from daily_report r where r.dham_id = d.id and r.status = 'approved')::bigint as sales
     from dham d order by d.name`);

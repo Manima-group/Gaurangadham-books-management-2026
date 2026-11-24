@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/session";
+import { requireApproved } from "@/lib/session";
 import { AGE_GROUPS, INTERESTS } from "@/lib/outreach";
 import { Card, PageHeader } from "@/components/ui";
 import { ContactForm } from "../form";
@@ -6,7 +6,7 @@ import { eventsFor } from "../data";
 
 /** Add a person who wants to hear about spiritual activities. Quick to fill on a phone. */
 export default async function NewContactPage() {
-  const u = await requireUser("contact", "devotee", "manager", "admin");
+  const u = await requireApproved("contact", "devotee", "manager", "admin");
   const events = await eventsFor(u);
   return (
     <>

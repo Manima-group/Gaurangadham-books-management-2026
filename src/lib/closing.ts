@@ -1,5 +1,6 @@
 import "server-only";
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import { stallCollectedInDham } from "./stalls";
 import { db, schema } from "@/db";
 import { movementTotals, scopeStock, total } from "./stock";
 import { addDays } from "./format";
@@ -42,7 +43,7 @@ export async function computeClosing(dhamId: number, date: string) {
   // Cumulative money position of the Dham up to and including this date
   const [cum] = (await db.execute(sql`
     select
-      (select coalesce(sum(collected_paise),0) from daily_report where dham_id = ${dhamId} and report_date <= ${date} and status in ('submitted','approved','changes_required'))::bigint as collected,
+      ((select coalesce(sum(collected_paise),0) from daily_report where dham_id = ${dhamId} and report_date <= ${date} and status in ('submitted','approved','changes_required')) + ${stallCollectedInDham(sql`${dhamId}`, date)})::bigint as collected,
       (select coalesce(sum(amount_paise),0) from money_submission where dham_id = ${dhamId} and submission_date <= ${date} and status <> 'disputed')::bigint as submitted,
       (select count(*) from money_submission where dham_id = ${dhamId} and submission_date <= ${date} and status = 'submitted')::int as unconfirmed
   `)) as unknown as { collected: number; submitted: number; unconfirmed: number }[];

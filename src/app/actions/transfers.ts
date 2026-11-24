@@ -7,6 +7,7 @@ import { fail, ok, type ActionState } from "@/lib/action";
 import { requireUser, type AppUser } from "@/lib/session";
 import { logActivity, notify, dhamManagers } from "@/lib/activity";
 import { holderStock, lockHolders, lockKey } from "@/lib/stock";
+import { insertMovements } from "@/lib/lots";
 import { num, todayIST } from "@/lib/format";
 import {
   approvedOf, availableFor, canApprove, canCancel, canReceive, canSee, canSend, fromHolderOf, holderNames, holderUserId,
@@ -288,7 +289,7 @@ export async function dispatchTransfer(_: ActionState, fd: FormData): Promise<Ac
       kind: "transfer_out" as const, bookId: p.line.bookId, qty: p.qty, fromHolder: src, toHolder: T(id), dhamId: t.fromDhamId,
       devoteeId: srcDevotee, movementDate: date, reference: `transfer:${id}`, note: `${ref(id)} sent`, createdBy: u.id,
     }));
-    await tx.insert(schema.stockMovement).values(moves);
+    await insertMovements(tx, moves);
     for (const p of plan) await tx.update(schema.dhamTransferLine).set({ sentQty: p.qty }).where(eq(schema.dhamTransferLine.id, p.line.id));
     const extra = t.status === "approved" ? { acceptedBy: u.id, acceptedAt: new Date() } : {};
     await tx.update(schema.dhamTransfer).set({ status: "sent", sentBy: u.id, sentAt: new Date(), ...extra }).where(eq(schema.dhamTransfer.id, id));
@@ -339,7 +340,7 @@ export async function receiveTransfer(_: ActionState, fd: FormData): Promise<Act
       kind: "transfer_in" as const, bookId: p.line.bookId, qty: p.qty, fromHolder: T(id), toHolder: dst, dhamId: t.toDhamId,
       devoteeId: holderUserId(dst), movementDate: date, reference: `transfer:${id}`, note: `${ref(id)} received`, createdBy: u.id,
     }));
-    if (moves.length) await tx.insert(schema.stockMovement).values(moves);
+    if (moves.length) await insertMovements(tx, moves);
     for (const p of plan)
       await tx.update(schema.dhamTransferLine).set({ receivedQty: p.line.receivedQty + p.qty, issue: issues.get(p.line.bookId) ?? p.line.issue }).where(eq(schema.dhamTransferLine.id, p.line.id));
     const left = plan.reduce((a, p) => a + p.left - p.qty, 0);
@@ -403,7 +404,7 @@ export async function reconcileTransfer(_: ActionState, fd: FormData): Promise<A
       ...(p.r > 0 ? [{ kind: "transfer_return" as const, bookId: p.line.bookId, qty: p.r, fromHolder: T(id), toHolder: src, dhamId: t.fromDhamId, devoteeId: srcDevotee, movementDate: date, reference: `transfer:${id}`, note: `${ref(id)} returned: ${note}`, createdBy: u.id }] : []),
       ...(p.w > 0 ? [{ kind: "transfer_loss" as const, bookId: p.line.bookId, qty: p.w, fromHolder: T(id), toHolder: "damaged", dhamId: t.fromDhamId, devoteeId: null, movementDate: date, reference: `transfer:${id}`, note: `${ref(id)} written off: ${note}`, createdBy: u.id }] : []),
     ]);
-    await tx.insert(schema.stockMovement).values(moves);
+    await insertMovements(tx, moves);
     for (const p of plan)
       await tx.update(schema.dhamTransferLine).set({ returnedQty: p.line.returnedQty + p.r, lostQty: p.line.lostQty + p.w }).where(eq(schema.dhamTransferLine.id, p.line.id));
     const left = plan.reduce((a, p) => a + p.left - p.r - p.w, 0);

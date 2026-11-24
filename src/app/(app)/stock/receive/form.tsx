@@ -9,11 +9,11 @@ type Book = { id: number; title: string; language: string };
 
 export function ReceiveForm({ books, dhams, today, isAdmin, dhamName }: { books: Book[]; dhams: { id: number; name: string }[]; today: string; isAdmin: boolean; dhamName?: string | null }) {
   const [review, setReview] = useState(false);
-  const [v, setV] = useState({ bookId: "", qty: "", destination: "central" });
+  const [v, setV] = useState({ bookId: "", qty: "", destination: "central", source: "" });
   const book = books.find((b) => String(b.id) === v.bookId);
   const place = isAdmin ? (v.destination === "central" ? "the Central Store" : dhams.find((d) => String(d.id) === v.destination)?.name) : dhamName;
   return (
-    <ActionForm action={async (s, fd) => { const r = await receiveBooks(s, fd); setReview(false); if (r.status === "success") setV({ bookId: "", qty: "", destination: v.destination }); return r; }}>
+    <ActionForm action={async (s, fd) => { const r = await receiveBooks(s, fd); setReview(false); if (r.status === "success") setV({ bookId: "", qty: "", destination: v.destination, source: v.source }); return r; }}>
       {(s) => (
         <>
           <div className={review ? "hidden" : "space-y-4"}>
@@ -34,6 +34,22 @@ export function ReceiveForm({ books, dhams, today, isAdmin, dhamName }: { books:
                 </select>
               </Field>
             )}
+            <fieldset>
+              <legend className="mb-1.5 text-sm font-semibold text-ink-900">Where did these books come from?</legend>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  ["temple_store", "🛕 Temple Store"],
+                  ["external_central", "📦 External Central"],
+                ].map(([val, l]) => (
+                  <label key={val} data-testid={`source-${val}`} className={`flex min-h-12 cursor-pointer items-center justify-center rounded-xl border text-sm font-semibold ${v.source === val ? "border-brand-500 bg-brand-50 text-brand-800 ring-2 ring-brand-200" : "border-stone-300 bg-white"}`}>
+                    <input type="radio" name="source" value={val} checked={v.source === val} onChange={() => setV({ ...v, source: val })} className="sr-only" />
+                    {l}
+                  </label>
+                ))}
+              </div>
+              {s.fieldErrors?.source && <p className="mt-1 text-sm font-medium text-red-700">{s.fieldErrors.source}</p>}
+              <p className="mt-1 text-xs text-ink-500">Saved with these copies so every report can show their origin. Devotees never see it.</p>
+            </fieldset>
             <Field label="3. Date received" htmlFor="date" error={s.fieldErrors?.date}>
               <input id="date" type="date" name="date" defaultValue={today} max={today} className="field-input" />
             </Field>
@@ -43,7 +59,7 @@ export function ReceiveForm({ books, dhams, today, isAdmin, dhamName }: { books:
             <Field label="Note" htmlFor="note" optional>
               <input id="note" name="note" className="field-input" placeholder="e.g. 2 boxes, delivered by BBT van" />
             </Field>
-            <button type="button" className="btn-primary w-full sm:w-auto" disabled={!v.bookId || !(Number(v.qty) > 0)} onClick={() => setReview(true)}>
+            <button type="button" className="btn-primary w-full sm:w-auto" disabled={!v.bookId || !(Number(v.qty) > 0) || !v.source} onClick={() => setReview(true)}>
               Review →
             </button>
           </div>
@@ -53,6 +69,7 @@ export function ReceiveForm({ books, dhams, today, isAdmin, dhamName }: { books:
                 <p className="text-sm text-ink-500">5. Please confirm</p>
                 <p className="mt-1 text-lg font-semibold">
                   Receive <span className="text-brand-800">{Number(v.qty).toLocaleString("en-IN")} copies</span> of {book?.title} ({book?.language}) at {place}?
+                  <span className="mt-1 block text-sm font-normal text-ink-700">Source: {v.source === "temple_store" ? "Temple Store" : "External Central"}</span>
                 </p>
               </div>
               <div className="flex flex-col-reverse gap-2 sm:flex-row">

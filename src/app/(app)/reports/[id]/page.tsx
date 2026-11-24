@@ -5,7 +5,7 @@ import { db, schema } from "@/db";
 import { requireUser } from "@/lib/session";
 import { moneySummary } from "@/lib/stats";
 import { fmtDate, fmtDateTime, inr, num } from "@/lib/format";
-import { REPORT_STATUS } from "@/lib/terms";
+import { PAY_MODE_LABEL, REPORT_STATUS } from "@/lib/terms";
 import { Alert, BookCover, Card, PageHeader, ReportStatus } from "@/components/ui";
 import { ReviewForm } from "./review";
 import { VenueBreakdown } from "@/components/venues";
@@ -74,6 +74,7 @@ export default async function ReportDetail({ params }: { params: Promise<{ id: s
               <Item k="Remaining books" v={num(remaining)} />
               <Item k="Sales amount" v={inr(r.salesPaise)} />
               <Item k="Money collected" v={inr(r.collectedPaise)} warn={r.collectedPaise !== r.salesPaise} />
+              <Item k="Received as" v={r.paymentMode ? (r.paymentMode === "split" ? `Cash ${inr(r.cashPaise ?? 0)} + UPI ${inr(r.upiPaise ?? 0)}` : PAY_MODE_LABEL[r.paymentMode]) : "Not recorded"} />
               <Item k="Money submitted (all time)" v={inr(money.submitted)} />
               <Item k="Money yet to submit" v={inr(pending)} warn={pending > 0} />
             </dl>
