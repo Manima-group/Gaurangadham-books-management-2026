@@ -12,6 +12,8 @@ import type { AppUser } from "./session";
  * but are not *available* to anything else (other transfers, giving books out, taking back).
  */
 
+import { stallReservationsSql, stallReservedFor } from "./stalls";
+
 export type Transfer = typeof schema.dhamTransfer.$inferSelect;
 export type TransferLine = typeof schema.dhamTransferLine.$inferSelect;
 
@@ -42,10 +44,13 @@ export async function reservations(exec: Exec = db) {
     from dham_transfer t join dham_transfer_line l on l.transfer_id = t.id
     where t.status in ('approved','accepted')
     group by 1, 2 having sum(coalesce(l.approved_qty, l.sent_qty, 0)) > 0`)) as unknown as { holder: string; book_id: number; qty: number }[];
+  // Copies an owner put on an open Shared Book Stall are reserved too (they are not moved until the stall closes).
+  const st = (await exec.execute(stallReservationsSql)) as unknown as { holder: string; book_id: number; qty: number }[];
   const out = new Map<string, Map<number, number>>();
-  for (const x of r) {
+  for (const x of [...r, ...st]) {
     if (!out.has(x.holder)) out.set(x.holder, new Map());
-    out.get(x.holder)!.set(Number(x.book_id), Number(x.qty));
+    const m = out.get(x.holder)!;
+    m.set(Number(x.book_id), (m.get(Number(x.book_id)) ?? 0) + Number(x.qty));
   }
   return out;
 }
@@ -65,7 +70,9 @@ export async function reservedFor(holder: string, exec: Exec = db, exceptTransfe
     where t.status in ('approved','accepted') and coalesce(t.from_holder, 'dham:' || t.from_dham_id) = ${holder}
       ${exceptTransferId ? sql`and t.id <> ${exceptTransferId}` : sql``}
     group by l.book_id`)) as unknown as { book_id: number; qty: number }[];
-  return new Map(r.map((x) => [Number(x.book_id), Number(x.qty)]));
+  const out = new Map(r.map((x) => [Number(x.book_id), Number(x.qty)]));
+  for (const [b, q] of await stallReservedFor(holder, exec)) out.set(b, (out.get(b) ?? 0) + q);
+  return out;
 }
 
 /* ---------------- Who may do what ---------------- */

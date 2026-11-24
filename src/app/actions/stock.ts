@@ -11,6 +11,7 @@ import { H, holderStock, lockHolders, pendingReportedQty } from "@/lib/stock";
 import { findCampaign } from "@/lib/campaign";
 import { reverseMovements } from "@/lib/ledger";
 import { availableFor } from "@/lib/transfers";
+import { createLot, insertMovements, SOURCE_LABEL } from "@/lib/lots";
 import { num, todayIST } from "@/lib/format";
 
 const dateField = z
@@ -48,6 +49,7 @@ export async function receiveBooks(_: ActionState, fd: FormData): Promise<Action
       qty: z.coerce.number({ invalid_type_error: "Enter how many copies arrived." }).int("Enter a whole number.").positive("Enter how many copies arrived."),
       date: dateField,
       destination: z.string().default("central"),
+      source: z.enum(["external_central", "temple_store"], { errorMap: () => ({ message: "Please choose where these books came from." }) }),
       reference: z.string().trim().optional(),
       note: z.string().trim().optional(),
     })
@@ -68,20 +70,28 @@ export async function receiveBooks(_: ActionState, fd: FormData): Promise<Action
     placeName = dh.name;
   }
   const campaign = await findCampaign(dhamId, d.date);
-  await db.insert(schema.stockMovement).values({
-    kind: "received",
-    bookId: b.id,
-    qty: d.qty,
-    fromHolder: "external",
-    toHolder: dhamId ? H.dham(dhamId) : H.central,
-    dhamId,
-    campaignId: campaign?.id,
-    movementDate: d.date,
-    reference: d.reference || null,
-    note: d.note || null,
-    createdBy: u.id,
+  const into = dhamId ? H.dham(dhamId) : H.central;
+  await db.transaction(async (tx) => {
+    // Every receipt is its own source lot, so its origin follows the copies everywhere.
+    const lotId = await createLot(tx, { bookId: b.id, source: d.source, qty: d.qty, into, reference: d.reference || null, by: u.id });
+    await insertMovements(tx, [
+      {
+        kind: "received",
+        bookId: b.id,
+        qty: d.qty,
+        fromHolder: "external",
+        toHolder: into,
+        dhamId,
+        campaignId: campaign?.id,
+        movementDate: d.date,
+        reference: d.reference || null,
+        note: d.note || null,
+        createdBy: u.id,
+        lotId,
+      },
+    ]);
   });
-  await logActivity(u.id, `${u.name} received ${num(d.qty)} copies of "${b.title}" at ${placeName}`, { dhamId });
+  await logActivity(u.id, `${u.name} received ${num(d.qty)} copies of "${b.title}" at ${placeName} (${SOURCE_LABEL[d.source]})`, { dhamId });
   revalidatePath("/stock");
   const stock = await holderStock(dhamId ? H.dham(dhamId) : H.central);
   return ok(
@@ -122,7 +132,7 @@ export async function assignToDham(_: ActionState, fd: FormData): Promise<Action
       if (l.qty > have) short[`qty_${l.bookId}`] = `Only ${num(have)} available in the Central Store`;
     }
     if (Object.keys(short).length) return short;
-    await tx.insert(schema.stockMovement).values(
+    await insertMovements(tx, 
     lines.map((l) => ({
       kind: "assign_dham" as const,
       bookId: l.bookId,
@@ -187,7 +197,7 @@ export async function assignToDevotee(_: ActionState, fd: FormData): Promise<Act
       if (l.qty > have) short[`qty_${l.bookId}`] = `Only ${num(have)} available in the Dham`;
     }
     if (Object.keys(short).length) return short;
-    await tx.insert(schema.stockMovement).values(
+    await insertMovements(tx, 
     lines.map((l) => ({
       kind: "assign_devotee" as const,
       bookId: l.bookId,
@@ -242,7 +252,7 @@ export async function takeBack(_: ActionState, fd: FormData): Promise<ActionStat
       if (l.qty > free) short[`qty_${l.bookId}`] = `Only ${num(Math.max(free, 0))} with the devotee`;
     }
     if (Object.keys(short).length) return short;
-    await tx.insert(schema.stockMovement).values(
+    await insertMovements(tx, 
     lines.map((l) => ({
       kind,
       bookId: l.bookId,

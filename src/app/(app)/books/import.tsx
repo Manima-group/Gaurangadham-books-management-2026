@@ -117,7 +117,7 @@ export function BookImport({ columns }: { columns: readonly Col[] }) {
           </div>
           <div className="max-h-[26rem] overflow-auto rounded-xl border border-stone-200">
             <table className="data-table min-w-[760px] text-sm">
-              <thead className="sticky top-0"><tr><th>Row</th><th>Status</th><th>Book</th><th>Code</th><th>Size</th><th className="text-right">Price</th><th className="text-right">Copies</th></tr></thead>
+              <thead className="sticky top-0"><tr><th>Row</th><th>Status</th><th>Book</th><th>Code</th><th>Size</th><th className="text-right">Price</th><th className="text-right">Copies</th><th>Source</th></tr></thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.row} className={r.action === "error" ? "bg-red-50/60" : ""}>
@@ -134,6 +134,7 @@ export function BookImport({ columns }: { columns: readonly Col[] }) {
                       {r.pricePaise ? rupees(r.pricePaise) : "—"}
                     </td>
                     <td className="text-right tabular-nums">{r.qty || "—"}</td>
+                    <td className="whitespace-nowrap">{r.source === "temple_store" ? "Temple Store" : r.source === "external_central" ? "External Central" : "—"}</td>
                   </tr>
                 ))}
               </tbody>

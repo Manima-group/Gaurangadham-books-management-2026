@@ -19,6 +19,12 @@ export type AppUser = {
   isCoSevak: boolean;
   /** Chakra Sevak always; others only when a Chakra Sevak gave access. */
   canSeeAvailability: boolean;
+  /** pending / rejected self-registrations may only see their status page. */
+  approvalStatus: "pending" | "approved" | "rejected";
+  /** Devotees: book work (sales, books, money, transfers, shared stalls). Sevaks always. */
+  canDistribute: boolean;
+  /** Devotees: read-only sales summary of their own Dham. Sevaks always. */
+  canViewDhamSales: boolean;
 };
 
 export const getUser = cache(async (): Promise<AppUser | null> => {
@@ -41,7 +47,10 @@ export const getUser = cache(async (): Promise<AppUser | null> => {
     onboarded: u.onboarded,
     dhamName,
     isCoSevak: u.isCoSevak,
-    canSeeAvailability: u.role === "admin" || ((u.role === "manager" || u.role === "devotee") && u.canSeeAvailability),
+    canSeeAvailability: u.approvalStatus === "approved" && (u.role === "admin" || ((u.role === "manager" || u.role === "devotee") && u.canSeeAvailability)),
+    approvalStatus: u.approvalStatus,
+    canDistribute: u.approvalStatus === "approved" && (u.role !== "devotee" || u.canDistributeBooks),
+    canViewDhamSales: u.approvalStatus === "approved" && (u.role === "admin" || u.role === "manager" || (u.role === "devotee" && u.canViewDhamSales)),
   };
 });
 
@@ -50,8 +59,20 @@ export const getUser = cache(async (): Promise<AppUser | null> => {
  * Sevak is never let in by default; pages open to them call requireSignedIn() instead.
  */
 export async function requireUser(...roles: Role[]): Promise<AppUser> {
+  const u = await requireApproved(...roles);
+  // Book work: a devotee needs the Book Distribution access their Sector Sevak turns on.
+  if (u.role === "devotee" && !u.canDistribute) redirect("/dashboard?denied=1");
+  return u;
+}
+
+/**
+ * Approved (not pending / rejected) user with one of `roles` — without the Book Distribution check.
+ * For work that is not book distribution: outreach contacts, Dham Sales View.
+ */
+export async function requireApproved(...roles: Role[]): Promise<AppUser> {
   const u = await getUser();
   if (!u) redirect("/login");
+  if (u.approvalStatus !== "approved") redirect("/dashboard");
   if (roles.length ? !roles.includes(u.role) : u.role === "contact") redirect("/dashboard?denied=1");
   return u;
 }

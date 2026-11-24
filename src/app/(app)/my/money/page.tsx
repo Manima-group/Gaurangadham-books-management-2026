@@ -6,14 +6,16 @@ import { fmtDate, inr, todayIST } from "@/lib/format";
 import { METHOD_LABEL, moneyPosition } from "@/lib/terms";
 import { Badge, Card, EmptyState, MoneyStatus, PageHeader } from "@/components/ui";
 import { MoneyForm } from "./form";
+import { myStallsWithMoney } from "@/lib/stalls";
 import { DeleteButton } from "@/components/delete";
 import { deleteMoney } from "@/app/actions/money";
 
 export default async function MyMoney() {
   const u = await requireUser("devotee", "manager");
-  const [m, rows] = await Promise.all([
+  const [m, rows, stalls] = await Promise.all([
     moneySummary({ devoteeId: u.id }),
     db.select().from(schema.moneySubmission).where(eq(schema.moneySubmission.devoteeId, u.id)).orderBy(desc(schema.moneySubmission.createdAt)),
+    myStallsWithMoney(u.id),
   ]);
   const remaining = Math.max(m.collected - m.submitted, 0);
   const pos = moneyPosition(m.collected, m.submitted);
@@ -34,7 +36,7 @@ export default async function MyMoney() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="New money submission">
           {remaining > 0 ? (
-            <MoneyForm today={todayIST()} remaining={remaining} userId={u.id} />
+            <MoneyForm today={todayIST()} remaining={remaining} userId={u.id} stalls={stalls} />
           ) : (
             <EmptyState icon="✅" title="Nothing to submit right now.">
               All the money you collected has been submitted. After you submit your next sales report, the amount will appear here.

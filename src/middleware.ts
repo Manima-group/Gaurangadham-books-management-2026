@@ -4,7 +4,7 @@ import { getSessionCookie } from "better-auth/cookies";
 export function middleware(req: NextRequest) {
   const hasSession = !!getSessionCookie(req);
   const { pathname } = req.nextUrl;
-  const open = pathname === "/login" || pathname === "/offline" || pathname === "/sw.js" || pathname === "/manifest.webmanifest";
+  const open = pathname === "/login" || pathname.startsWith("/register/") || pathname === "/offline" || pathname === "/sw.js" || pathname === "/manifest.webmanifest";
   if (!hasSession && !open) {
     return NextResponse.redirect(new URL("/login", req.url));
   }

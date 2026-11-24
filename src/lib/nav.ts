@@ -1,6 +1,6 @@
 import type { Role } from "./terms";
 
-export type NavItem = { href: string; label: string; icon: string; mobile?: boolean; group?: string; short?: string; needs?: "availability" };
+export type NavItem = { href: string; label: string; icon: string; mobile?: boolean; group?: string; short?: string; needs?: "availability" | "distribute" | "dhamSales" };
 
 /**
  * Menu items, grouped into short sections so each menu shows a few clear headings.
@@ -19,9 +19,12 @@ export const NAV: Record<Role, NavItem[]> = {
     { href: "/availability", label: "Book Availability", icon: "🔎", group: "Books" },
     { href: "/transfers", label: "Books Transfer", icon: "🚚", group: "Books" },
     { href: "/books", label: "Books & Prices", icon: "📚", group: "Books" },
+    { href: "/stalls", label: "Shared Book Stall", icon: "🎪", group: "Books" },
+    { href: "/stock/sources", label: "Stock Sources", icon: "🏷️", group: "Books" },
     { href: "/contacts", label: "Outreach Contacts", icon: "📇", group: "Outreach" },
     { href: "/contacts/reports", label: "Outreach Reports", icon: "📈", group: "Outreach" },
     { href: "/people", label: "Sevaks & Devotees", icon: "👥", group: "Setup" },
+    { href: "/people/requests", label: "Registration Requests", icon: "📝", group: "Setup" },
     { href: "/dhams", label: "Manage Dhams", icon: "🗺️", group: "Setup" },
     { href: "/drives", label: "Distribution Drives", icon: "🚩", group: "Setup" },
     { href: "/setup", label: "Setup Progress", icon: "✅", group: "Setup" },
@@ -40,6 +43,8 @@ export const NAV: Record<Role, NavItem[]> = {
     { href: "/stock/assign-devotees", label: "Assign Books", icon: "🤲", group: "Books" },
     { href: "/availability", label: "Book Availability", icon: "🔎", group: "Books" },
     { href: "/transfers", label: "Books Transfer", icon: "🚚", group: "Books" },
+    { href: "/stalls", label: "Shared Book Stall", icon: "🎪", group: "Books" },
+    { href: "/stock/sources", label: "Stock Sources", icon: "🏷️", group: "Books" },
     { href: "/contacts", label: "Outreach Contacts", icon: "📇", group: "Outreach" },
     { href: "/contacts/reports", label: "Outreach Reports", icon: "📈", group: "Outreach" },
     { href: "/my/sales", label: "My Sales", icon: "🛍️", group: "My own distribution" },
@@ -48,18 +53,21 @@ export const NAV: Record<Role, NavItem[]> = {
     { href: "/my/money", label: "My Money", icon: "💰", group: "My own distribution" },
     { href: "/my/reports", label: "My Reports", icon: "🗂️", group: "My own distribution" },
     { href: "/people", label: "My Devotees & Co-Sevaks", icon: "👥", group: "More" },
+    { href: "/people/requests", label: "Registration Requests", icon: "📝", group: "More" },
     { href: "/activity", label: "Activity History", icon: "🕘", group: "More" },
     { href: "/workflow", label: "How It Works", icon: "🔄", group: "More" },
   ],
   devotee: [
     { href: "/dashboard", label: "Home", icon: "🏠", mobile: true },
-    { href: "/my/sales", label: "Today's Sales", short: "Sales", icon: "📝", mobile: true },
-    { href: "/my/books", label: "My Books", short: "Books", icon: "📚", mobile: true },
-    { href: "/my/money", label: "Submit Money", short: "Money", icon: "💰", mobile: true },
-    { href: "/my/reports", label: "My Reports", short: "Reports", icon: "🗂️", mobile: true },
-    { href: "/my/history", label: "Sales & History", icon: "🕘" },
-    { href: "/transfers", label: "Books Transfer", icon: "🚚" },
+    { href: "/my/sales", label: "Today's Sales", short: "Sales", icon: "📝", mobile: true, needs: "distribute" },
+    { href: "/my/books", label: "My Books", short: "Books", icon: "📚", mobile: true, needs: "distribute" },
+    { href: "/my/money", label: "Submit Money", short: "Money", icon: "💰", mobile: true, needs: "distribute" },
+    { href: "/my/reports", label: "My Reports", short: "Reports", icon: "🗂️", mobile: true, needs: "distribute" },
+    { href: "/my/history", label: "Sales & History", icon: "🕘", needs: "distribute" },
+    { href: "/stalls", label: "Shared Book Stall", icon: "🎪", needs: "distribute" },
+    { href: "/transfers", label: "Books Transfer", icon: "🚚", needs: "distribute" },
     { href: "/availability", label: "Book Availability", icon: "🔎", needs: "availability" },
+    { href: "/dham-sales", label: "Dham Sales", icon: "📊", needs: "dhamSales" },
     { href: "/contacts/new", label: "Collect Contacts", icon: "➕", group: "Outreach" },
     { href: "/contacts/mine", label: "My Contacts", icon: "📇", group: "Outreach" },
   ],
@@ -73,6 +81,13 @@ export const NAV: Record<Role, NavItem[]> = {
 };
 
 /** Menu for this person: items needing an access grant show only when a Chakra Sevak gave it. */
-export function navFor(u: { role: Role; canSeeAvailability: boolean }): NavItem[] {
-  return NAV[u.role].filter((i) => i.needs !== "availability" || u.canSeeAvailability);
+export function navFor(u: { role: Role; canSeeAvailability: boolean; approvalStatus: string; canDistribute: boolean; canViewDhamSales: boolean }): NavItem[] {
+  // Awaiting approval (or not approved): only Home; the account link is always in the menu footer.
+  if (u.approvalStatus !== "approved") return NAV[u.role].filter((i) => i.href === "/dashboard");
+  return NAV[u.role].filter(
+    (i) =>
+      (i.needs !== "availability" || u.canSeeAvailability) &&
+      (i.needs !== "distribute" || u.canDistribute) &&
+      (i.needs !== "dhamSales" || u.canViewDhamSales),
+  );
 }

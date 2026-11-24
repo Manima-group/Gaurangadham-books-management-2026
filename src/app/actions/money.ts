@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
+import { settleIfDone, stallCollectedBy } from "@/lib/stalls";
 import { db, schema } from "@/db";
 import { fail, fromZod, ok, type ActionState } from "@/lib/action";
 import { requireUser } from "@/lib/session";
@@ -18,17 +19,26 @@ const MoneySchema = z
       .trim()
       .min(1, "Please enter the amount you are submitting.")
       .refine((v) => toPaise(v) > 0, "Amount must be more than ₹0."),
-    method: z.enum(["cash", "upi", "bank"], { errorMap: () => ({ message: "Please choose how you are submitting the money." }) }),
-    reference: z.string().trim().optional(),
+    method: z.enum(["cash", "upi", "bank", "split"], { errorMap: () => ({ message: "Please choose how you are submitting the money." }) }),
+    reference: z.string().trim().max(60, "Reference is too long.").optional(),
+    cashPart: z.string().trim().optional(),
+    upiPart: z.string().trim().optional(),
+    stallId: z.string().trim().optional(),
+    clientKey: z.string().trim().max(64).optional(),
     submissionDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "Please choose the date.")
       .refine((v) => v <= todayIST(), "The date cannot be in the future."),
     remarks: z.string().trim().optional(),
   })
-  .refine((v) => v.method === "cash" || (v.reference && v.reference.length >= 4), {
-    path: ["reference"],
-    message: "For UPI or bank transfer, please enter the transaction / UTR number.",
+  // UPI / bank reference is optional (many devotees can't find it); split parts must add up exactly.
+  .refine((v) => v.method !== "split" || toPaise(v.cashPart || "0") + toPaise(v.upiPart || "0") === toPaise(v.amount), {
+    path: ["cashPart"],
+    message: "Cash + UPI must equal the amount.",
+  })
+  .refine((v) => v.method !== "split" || (toPaise(v.cashPart || "0") > 0 && toPaise(v.upiPart || "0") > 0), {
+    path: ["cashPart"],
+    message: "For both, enter a cash part and a UPI part.",
   });
 
 /* ---------------- STEP 6: Money submission (devotee) ---------------- */
@@ -40,12 +50,24 @@ export async function submitMoney(_: ActionState, fd: FormData): Promise<ActionS
   if (!p.success) return fromZod(p.error);
   const amountPaise = toPaise(p.data.amount);
   const dhamId = u.dhamId;
+  const stallId = p.data.stallId ? Number(p.data.stallId) || null : null;
+  // A stall tag is only valid for a stall where this person actually received money.
+  if (stallId) {
+    const [x] = await db.select({ id: schema.stallSale.id }).from(schema.stallSale)
+      .where(and(eq(schema.stallSale.stallId, stallId), eq(schema.stallSale.recipientId, u.id))).limit(1);
+    if (!x) return fail("You did not receive money at that stall.", undefined, { stallId: "Choose another" });
+  }
   // Lock this devotee's money while checking the balance and saving, so a double tap can't submit twice.
   const res = await db.transaction(async (tx) => {
     await lockKey(tx, `money:${u.id}`);
+    if (p.data.clientKey) {
+      const [dup] = await tx.select().from(schema.moneySubmission)
+        .where(and(eq(schema.moneySubmission.devoteeId, u.id), eq(schema.moneySubmission.clientKey, p.data.clientKey)));
+      if (dup) return { dup };
+    }
     const [m] = (await tx.execute(sql`
       select
-        (select coalesce(sum(collected_paise),0) from daily_report where devotee_id = ${u.id} and status in ('submitted','approved','changes_required'))::bigint as collected,
+        ((select coalesce(sum(collected_paise),0) from daily_report where devotee_id = ${u.id} and status in ('submitted','approved','changes_required')) + ${stallCollectedBy(sql`${u.id}`)})::bigint as collected,
         (select coalesce(sum(amount_paise),0) from money_submission where devotee_id = ${u.id} and status <> 'disputed')::bigint as submitted`)) as unknown as { collected: number; submitted: number }[];
     const remaining = Number(m.collected) - Number(m.submitted);
     if (amountPaise > remaining) return { remaining };
@@ -57,12 +79,17 @@ export async function submitMoney(_: ActionState, fd: FormData): Promise<ActionS
         amountPaise,
         method: p.data.method,
         reference: p.data.reference || null,
+        cashPaise: p.data.method === "split" ? toPaise(p.data.cashPart || "0") : p.data.method === "cash" ? amountPaise : 0,
+        upiPaise: p.data.method === "split" ? toPaise(p.data.upiPart || "0") : p.data.method === "upi" ? amountPaise : 0,
+        stallId: stallId,
+        clientKey: p.data.clientKey || null,
         submissionDate: p.data.submissionDate,
         remarks: p.data.remarks || null,
       })
       .returning();
     return { row, remaining };
   });
+  if ("dup" in res) return ok("Already submitted 🙏", "This money was saved before — it was not added twice.");
   const remaining = res.remaining;
   if (!("row" in res) || !res.row)
     return fail(
@@ -110,6 +137,7 @@ export async function confirmMoney(_: ActionState, fd: FormData): Promise<Action
     .where(and(eq(schema.moneySubmission.id, id), eq(schema.moneySubmission.status, "submitted")))
     .returning({ id: schema.moneySubmission.id });
   if (!changed.length) return fail("This entry has already been checked.", "Someone may have confirmed it a moment ago. Refresh the page.");
+  if (decision === "received" && row.stallId) await settleIfDone(row.stallId, u.id);
   const [dev] = await db.select().from(schema.user).where(eq(schema.user.id, row.devoteeId));
   await logActivity(
     u.id,

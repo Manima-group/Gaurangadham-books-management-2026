@@ -7,6 +7,8 @@ import { setAvailabilityForRole, toggleAvailability, togglePerson } from "@/app/
 import { ROLE_LABEL, type Role } from "@/lib/terms";
 import { Badge, Card, EmptyState, PageHeader } from "@/components/ui";
 import { EditPersonForm, PersonForm, ResetPasswordForm } from "./forms";
+import { AccessToggle } from "./access-forms";
+import { canManageAccess } from "@/lib/registration";
 import { DeleteButton } from "@/components/delete";
 import { deletePerson } from "@/app/actions/setup";
 
@@ -36,6 +38,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
         crumbs={[{ label: "Home", href: "/dashboard" }, { label: isAdmin ? "Settings" : "More" }, { label: isAdmin ? "Sevaks & Devotees" : "My Devotees & Co-Sevaks" }]}
         doHere={isAdmin ? "Add the people who use the app, choose their role and Dham, and decide who may see Book Availability." : `Add devotees of ${u.dhamName}, or a Co-Sevak to help you run it, and help them if they forget their password.`}
         next="They can log in with their mobile number and the password you set. A short tour guides them on first login."
+        actions={<><Link href="/people/registration" className="btn-secondary btn-sm">Registration QR</Link><Link href="/people/requests" className="btn-secondary btn-sm">Registration Requests</Link></>}
       />
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {(allowed as Role[]).map((r) => (
@@ -81,12 +84,26 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
                         {p.role !== "admin" && p.canSeeAvailability && <Badge tone="blue" title="May see Book Availability in all Dhams">👁 Availability</Badge>}
                         {p.id === u.id && <Badge tone="green">You</Badge>}
                         {p.isActive ? null : <Badge>Inactive</Badge>}
+                        {p.role === "devotee" && p.approvalStatus === "pending" && <Badge tone="amber">Awaiting approval</Badge>}
+                        {p.role === "devotee" && p.approvalStatus === "rejected" && <Badge tone="red">Not approved</Badge>}
+                        {p.role === "devotee" && p.approvalStatus === "approved" && (
+                          <>
+                            <Badge tone={p.canDistributeBooks ? "green" : "gray"}>Book Distribution: {p.canDistributeBooks ? "Enabled" : "Disabled"}</Badge>
+                            {p.canViewDhamSales && <Badge tone="blue">Dham Sales View</Badge>}
+                          </>
+                        )}
                       </p>
                       <p className="text-sm text-ink-500">
                         📱 {p.phone ?? "—"}{p.dhamId ? ` · ${dn.get(p.dhamId)}` : ""}{p.email.endsWith(".local") ? "" : ` · ${p.email}`}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                      {p.role === "devotee" && p.approvalStatus === "approved" && canManageAccess(u, p) && (
+                        <>
+                          <AccessToggle id={p.id} permission="book_distribution" on={p.canDistributeBooks} label="Book Distribution" />
+                          <AccessToggle id={p.id} permission="dham_sales_view" on={p.canViewDhamSales} label="Dham Sales View" />
+                        </>
+                      )}
                       {isAdmin && (p.role === "manager" || p.role === "devotee") && (
                         <form action={toggleAvailability}>
                           <input type="hidden" name="id" value={p.id} />

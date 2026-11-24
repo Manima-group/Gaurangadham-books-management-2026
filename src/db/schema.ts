@@ -44,6 +44,21 @@ export const user = pgTable("user", {
   addedBy: text("added_by"),
   /** Given by a Chakra Sevak: may see Book Availability across all Dhams. */
   canSeeAvailability: boolean("can_see_availability").notNull().default(false),
+  /**
+   * Self-registration (QR) state. Existing and Sevak-created people are "approved".
+   * pending / rejected people can log in but only see their status page.
+   * (Suspension uses the existing is_active=false, which also ends their sessions.)
+   */
+  approvalStatus: text("approval_status", { enum: ["pending", "approved", "rejected"] }).notNull().default("approved"),
+  /** Devotees only: may do book work (sales, books, money, transfers, shared stalls). Existing people keep access (true). */
+  canDistributeBooks: boolean("can_distribute_books").notNull().default(true),
+  /** Devotees only: read-only sales summary of their own Dham. */
+  canViewDhamSales: boolean("can_view_dham_sales").notNull().default(false),
+  /** Registration invite (QR) used to sign up, if any. */
+  registeredVia: integer("registered_via"),
+  reviewedBy: text("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNote: text("review_note"),
 });
 
 export const session = pgTable("session", {
@@ -156,7 +171,7 @@ export const stockMovement = pgTable(
   {
     id: serial("id").primaryKey(),
     kind: text("kind", {
-      enum: ["received", "assign_dham", "assign_devotee", "sold", "returned", "damaged", "correction", "transfer_out", "transfer_in", "transfer_return", "transfer_loss"],
+      enum: ["received", "assign_dham", "assign_devotee", "sold", "returned", "damaged", "correction", "transfer_out", "transfer_in", "transfer_return", "transfer_loss", "stall_transfer"],
     }).notNull(),
     bookId: integer("book_id").notNull(),
     qty: integer("qty").notNull(),
@@ -173,6 +188,10 @@ export const stockMovement = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
     /** Set when this movement was undone: id of the "correction" movement that reverses it. */
     reversedBy: integer("reversed_by"),
+    /** Source lot these copies come from (null = stock that existed before source lots: "Unknown / legacy"). */
+    lotId: integer("lot_id"),
+    /** Shared Book Stall this movement was posted for, if any. */
+    stallId: integer("stall_id"),
   },
   (t) => [
     index("sm_dham_idx").on(t.dhamId),
@@ -182,6 +201,8 @@ export const stockMovement = pgTable(
     index("sm_dham_date_idx").on(t.dhamId, t.movementDate),
     index("sm_kind_date_idx").on(t.kind, t.movementDate),
     index("sm_report_idx").on(t.reportId),
+    index("sm_lot_idx").on(t.lotId),
+    index("sm_stall_idx").on(t.stallId),
   ],
 );
 
@@ -205,6 +226,10 @@ export const dailyReport = pgTable(
     totalSold: integer("total_sold").notNull().default(0),
     salesPaise: integer("sales_paise").notNull().default(0),
     collectedPaise: integer("collected_paise").notNull().default(0),
+    /** How the collected money was received. Null on reports made before payment modes existed. */
+    paymentMode: text("payment_mode", { enum: ["cash", "upi", "split"] }),
+    cashPaise: integer("cash_paise"),
+    upiPaise: integer("upi_paise"),
     remarks: text("remarks"),
     reviewNote: text("review_note"),
     reviewedBy: text("reviewed_by"),
@@ -265,8 +290,15 @@ export const moneySubmission = pgTable(
   devoteeId: text("devotee_id").notNull(),
   dhamId: integer("dham_id").notNull(),
   amountPaise: integer("amount_paise").notNull(),
-  method: text("method", { enum: ["cash", "upi", "bank"] }).notNull(),
+  method: text("method", { enum: ["cash", "upi", "bank", "split"] }).notNull(),
   reference: text("reference"),
+  /** Split only: the cash and UPI parts (sum = amount). */
+  cashPaise: integer("cash_paise"),
+  upiPaise: integer("upi_paise"),
+  /** Money handed over for a Shared Book Stall's collections. */
+  stallId: integer("stall_id"),
+  /** One key per filled form: a repeated tap or an offline replay never saves twice. */
+  clientKey: text("client_key"),
   submissionDate: date("submission_date").notNull(),
   remarks: text("remarks"),
   status: text("status", { enum: ["submitted", "received", "disputed"] })
@@ -281,6 +313,7 @@ export const moneySubmission = pgTable(
     index("money_devotee_idx").on(t.devoteeId),
     index("money_dham_status_idx").on(t.dhamId, t.status),
     index("money_date_idx").on(t.submissionDate),
+    uniqueIndex("money_client_key_uq").on(t.devoteeId, t.clientKey),
   ],
 );
 
@@ -505,4 +538,272 @@ export const outreachContactAudit = pgTable(
     at: timestamp("at").notNull().defaultNow(),
   },
   (t) => [index("oca_contact_idx").on(t.contactId)],
+);
+
+/* ------------------------------------------------------------------ */
+/* Self-registration (QR invite) and access changes                    */
+/* ------------------------------------------------------------------ */
+
+/** A Sector Sevak's registration link / QR for their Dham. The token is an invitation, never a login. */
+export const registrationInvite = pgTable(
+  "registration_invite",
+  {
+    id: serial("id").primaryKey(),
+    token: text("token").notNull(),
+    dhamId: integer("dham_id").notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    expiresAt: timestamp("expires_at").notNull(),
+    revokedAt: timestamp("revoked_at"),
+    revokedBy: text("revoked_by"),
+  },
+  (t) => [uniqueIndex("invite_token_uq").on(t.token), index("invite_dham_idx").on(t.dhamId)],
+);
+
+/** Sign-up attempts, for rate limiting (IP stored only as a hash). */
+export const registrationAttempt = pgTable(
+  "registration_attempt",
+  {
+    id: serial("id").primaryKey(),
+    inviteId: integer("invite_id"),
+    ipHash: text("ip_hash").notNull(),
+    ok: boolean("ok").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("regatt_ip_idx").on(t.ipHash, t.createdAt), index("regatt_invite_idx").on(t.inviteId, t.createdAt)],
+);
+
+/** Every approval decision and access toggle change: who, whom, what, old -> new, why. */
+export const accessAudit = pgTable(
+  "access_audit",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    actorId: text("actor_id").notNull(),
+    permission: text("permission", { enum: ["approval", "book_distribution", "dham_sales_view"] }).notNull(),
+    oldValue: text("old_value"),
+    newValue: text("new_value").notNull(),
+    reason: text("reason"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("access_audit_user_idx").on(t.userId)],
+);
+
+/* ------------------------------------------------------------------ */
+/* Stock source lots (External Central / Temple Store)                 */
+/* ------------------------------------------------------------------ */
+
+/** One inward batch. Movements carry lot_id, so the origin survives every transfer, sale and return. */
+export const stockLot = pgTable(
+  "stock_lot",
+  {
+    id: serial("id").primaryKey(),
+    bookId: integer("book_id").notNull(),
+    source: text("source", { enum: ["external_central", "temple_store", "unknown"] }).notNull(),
+    qtyReceived: integer("qty_received").notNull(),
+    receivedInto: text("received_into").notNull(), // holder: central | dham:<id>
+    reference: text("reference"),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("lot_book_idx").on(t.bookId), index("lot_source_idx").on(t.source)],
+);
+
+/* ------------------------------------------------------------------ */
+/* Shared Book Stall                                                    */
+/* ------------------------------------------------------------------ */
+
+export const bookStall = pgTable(
+  "book_stall",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    eventDate: date("event_date").notNull(),
+    location: text("location"),
+    description: text("description"),
+    organizingDhamId: integer("organizing_dham_id").notNull(),
+    mode: text("mode", { enum: ["same_dham", "multi_dham"] }).notNull().default("same_dham"),
+    status: text("status", {
+      enum: ["draft", "active", "closing", "disputed", "pending_approval", "pending_settlement", "closed", "cancelled"],
+    })
+      .notNull()
+      .default("draft"),
+    coordinatorId: text("coordinator_id").notNull(),
+    createdBy: text("created_by").notNull(),
+    /** Bumped whenever the closing allocation changes; confirmations of older versions no longer count. */
+    allocationVersion: integer("allocation_version").notNull().default(0),
+    closingNote: text("closing_note"),
+    postedAt: timestamp("posted_at"),
+    closedAt: timestamp("closed_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("stall_dham_status_idx").on(t.organizingDhamId, t.status), index("stall_coord_idx").on(t.coordinatorId)],
+);
+
+export const stallParticipant = pgTable(
+  "stall_participant",
+  {
+    id: serial("id").primaryKey(),
+    stallId: integer("stall_id").notNull(),
+    userId: text("user_id").notNull(),
+    dhamId: integer("dham_id").notNull(),
+    status: text("status", { enum: ["invited", "accepted", "declined", "removed"] }).notNull().default("invited"),
+    invitedBy: text("invited_by").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    respondedAt: timestamp("responded_at"),
+  },
+  (t) => [uniqueIndex("stall_part_uq").on(t.stallId, t.userId), index("stall_part_user_idx").on(t.userId)],
+);
+
+/** Copies an owner puts on the stall. Confirmed contributions of an open stall are RESERVED, not moved. */
+export const stallContribution = pgTable(
+  "stall_contribution",
+  {
+    id: serial("id").primaryKey(),
+    stallId: integer("stall_id").notNull(),
+    userId: text("user_id").notNull(), // owner
+    bookId: integer("book_id").notNull(),
+    qty: integer("qty").notNull(),
+    status: text("status", { enum: ["proposed", "confirmed", "withdrawn"] }).notNull().default("proposed"),
+    proposedBy: text("proposed_by").notNull(),
+    clientKey: text("client_key"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    confirmedAt: timestamp("confirmed_at"),
+  },
+  (t) => [
+    index("stall_contrib_stall_idx").on(t.stallId),
+    index("stall_contrib_user_idx").on(t.userId, t.status),
+    uniqueIndex("stall_contrib_key_uq").on(t.stallId, t.clientKey),
+  ],
+);
+
+/** One group sale at the stall (no owner chosen). A reversal is another row with negative lines. */
+export const stallSale = pgTable(
+  "stall_sale",
+  {
+    id: serial("id").primaryKey(),
+    stallId: integer("stall_id").notNull(),
+    clientKey: text("client_key").notNull(),
+    operatorId: text("operator_id").notNull(),
+    recipientId: text("recipient_id").notNull(), // who actually received the money
+    mode: text("mode", { enum: ["cash", "upi", "split"] }).notNull(),
+    totalPaise: integer("total_paise").notNull(),
+    cashPaise: integer("cash_paise").notNull().default(0),
+    upiPaise: integer("upi_paise").notNull().default(0),
+    reversalOf: integer("reversal_of"),
+    reversedBy: integer("reversed_by"),
+    note: text("note"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("stall_sale_key_uq").on(t.stallId, t.clientKey), index("stall_sale_recipient_idx").on(t.recipientId)],
+);
+
+export const stallSaleLine = pgTable(
+  "stall_sale_line",
+  {
+    id: serial("id").primaryKey(),
+    saleId: integer("sale_id").notNull(),
+    stallId: integer("stall_id").notNull(),
+    bookId: integer("book_id").notNull(),
+    qty: integer("qty").notNull(), // negative on reversals
+    pricePaise: integer("price_paise").notNull(),
+    amountPaise: integer("amount_paise").notNull(),
+  },
+  (t) => [index("stall_line_stall_idx").on(t.stallId, t.bookId), index("stall_line_sale_idx").on(t.saleId)],
+);
+
+/** Physical count per title at closing. loss = contributed - sold - remaining (documented with a note). */
+export const stallCount = pgTable(
+  "stall_count",
+  {
+    id: serial("id").primaryKey(),
+    stallId: integer("stall_id").notNull(),
+    bookId: integer("book_id").notNull(),
+    contributed: integer("contributed").notNull(),
+    sold: integer("sold").notNull(),
+    remaining: integer("remaining").notNull(),
+    loss: integer("loss").notNull().default(0),
+    note: text("note"),
+    countedBy: text("counted_by").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("stall_count_uq").on(t.stallId, t.bookId)],
+);
+
+/** Closing allocation per owner per title (one set per allocation version). */
+export const stallAllocation = pgTable(
+  "stall_allocation",
+  {
+    id: serial("id").primaryKey(),
+    stallId: integer("stall_id").notNull(),
+    version: integer("version").notNull(),
+    userId: text("user_id").notNull(),
+    bookId: integer("book_id").notNull(),
+    contributed: integer("contributed").notNull(),
+    suggestedTakeHome: integer("suggested_take_home").notNull(),
+    takeHome: integer("take_home").notNull(),
+    loss: integer("loss").notNull().default(0),
+    transferIn: integer("transfer_in").notNull().default(0),
+    transferOut: integer("transfer_out").notNull().default(0),
+    attributedSold: integer("attributed_sold").notNull(),
+    attributedValuePaise: integer("attributed_value_paise").notNull().default(0),
+  },
+  (t) => [uniqueIndex("stall_alloc_uq").on(t.stallId, t.version, t.userId, t.bookId)],
+);
+
+/** Copies one owner hands to another at closing (a real ownership move, posted as stall_transfer). */
+export const stallTransferLine = pgTable(
+  "stall_transfer_line",
+  {
+    id: serial("id").primaryKey(),
+    stallId: integer("stall_id").notNull(),
+    version: integer("version").notNull(),
+    fromUserId: text("from_user_id").notNull(),
+    toUserId: text("to_user_id").notNull(),
+    bookId: integer("book_id").notNull(),
+    qty: integer("qty").notNull(),
+  },
+  (t) => [index("stall_xfer_idx").on(t.stallId, t.version)],
+);
+
+export const stallConfirmation = pgTable(
+  "stall_confirmation",
+  {
+    id: serial("id").primaryKey(),
+    stallId: integer("stall_id").notNull(),
+    version: integer("version").notNull(),
+    userId: text("user_id").notNull(),
+    decision: text("decision", { enum: ["confirmed", "disputed"] }).notNull(),
+    reason: text("reason"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("stall_conf_uq").on(t.stallId, t.version, t.userId)],
+);
+
+/** Sector Sevak (or Chakra Sevak) approval of the closing, one per participating Dham. */
+export const stallApproval = pgTable(
+  "stall_approval",
+  {
+    id: serial("id").primaryKey(),
+    stallId: integer("stall_id").notNull(),
+    version: integer("version").notNull(),
+    dhamId: integer("dham_id").notNull(),
+    approvedBy: text("approved_by").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("stall_appr_uq").on(t.stallId, t.version, t.dhamId)],
+);
+
+export const stallEvent = pgTable(
+  "stall_event",
+  {
+    id: serial("id").primaryKey(),
+    stallId: integer("stall_id").notNull(),
+    actorId: text("actor_id").notNull(),
+    action: text("action").notNull(),
+    detail: jsonb("detail"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("stall_event_idx").on(t.stallId)],
 );

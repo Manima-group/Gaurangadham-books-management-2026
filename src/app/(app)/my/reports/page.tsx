@@ -31,7 +31,7 @@ export default async function MyReports() {
                   <span className="font-semibold">{fmtDate(r.reportDate)}</span>
                   <ReportStatus status={r.status} />
                 </div>
-                <p className="mt-1 text-sm text-ink-500">{num(r.totalSold)} books sold · {inr(r.salesPaise)} · collected {inr(r.collectedPaise)}</p>
+                <p className="mt-1 text-sm text-ink-500">{num(r.totalSold)} books sold · {inr(r.salesPaise)} · collected {inr(r.collectedPaise)}{r.paymentMode === "split" ? ` (cash ${inr(r.cashPaise ?? 0)} + UPI ${inr(r.upiPaise ?? 0)})` : r.paymentMode === "upi" ? " (UPI)" : r.paymentMode === "cash" ? " (cash)" : ""}</p>
                 {r.reviewNote && <p className="mt-1 text-sm text-amber-800">Sector Sevak's note: “{r.reviewNote}”</p>}
               </Link>
               {(r.status !== "approved" || u.role === "manager") && (

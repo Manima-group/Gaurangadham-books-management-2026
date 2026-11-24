@@ -61,6 +61,7 @@ with sync_playwright() as p:
     page.select_option("#bookId", label="Bhagavad Gita As It Is (English)")
     page.fill("#qty", "500")
     page.fill("#reference", "INV-2026-77")
+    page.click("[data-testid=source-temple_store]")
     page.click("button:has-text('Review')")
     page.click("button:has-text('Confirm Receipt')")
     expect(page.get_by_text("Successfully received 500 copies of Bhagavad Gita As It Is.")).to_be_visible()
@@ -140,8 +141,7 @@ with sync_playwright() as p:
     mp.goto(BASE + "/my/money")
     mp.fill("#amount", "200")
     mp.click("label:has-text('UPI')")
-    mp.click("button:has-text('Submit Money')")
-    expect(mp.get_by_text("transaction / UTR").first).to_be_visible()
+    # UPI / bank reference is optional (master prompt V3) — fill it here; four_features.py covers the empty case.
     mp.fill("#reference", "UPI998877")
     mp.click("button:has-text('Submit Money')")
     expect(mp.get_by_text("₹200 submitted")).to_be_visible()
