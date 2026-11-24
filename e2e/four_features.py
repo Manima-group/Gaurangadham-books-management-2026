@@ -68,9 +68,11 @@ with sync_playwright() as p:
     check("A: logged in at once to pending dashboard", newp.locator("[data-testid=pending-dashboard]").count() == 1 and newp.get_by_text("Awaiting Sector Sevak Approval").count() >= 1)
     reg = uid("9876500001")
     check("A: stored pending, both permissions off, phone not verified", q(f"select approval_status||can_distribute_books||can_view_dham_sales||email_verified from \"user\" where id='{reg}'") == "pendingfalsefalsefalse")
-    for path in ["/my/books", "/my/sales", "/my/money", "/stalls", "/contacts/mine", "/dham-sales"]:
+    for path in ["/my/books", "/my/sales", "/my/money", "/stalls", "/dham-sales"]:
         go(newp, path)
         check(f"A: pending user denied {path}", "/dashboard" in newp.url and newp.locator("[data-testid=pending-dashboard]").count() == 1, newp.url)
+    go(newp, "/contacts/mine")  # outreach is allowed before approval (see e2e/permissions.py)
+    check("A: pending user may open own outreach contacts", "/contacts/mine" in newp.url)
     check("A: pending user denied export API", newp.request.get(B + "/api/export/reports").status in (401, 403))
     nav = newp.locator("nav").first.inner_text() if newp.locator("nav").count() else ""
     check("A: pending nav shows no book items", "My Books" not in nav and "Add Today" not in nav)

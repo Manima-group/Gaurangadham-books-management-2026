@@ -11,6 +11,7 @@ import { logActivity, notify, dhamManagers } from "@/lib/activity";
 import { H, lockHolders, lockKey, holderStock, pendingReportedQty } from "@/lib/stock";
 import { availableFor } from "@/lib/transfers";
 import { insertMovements } from "@/lib/lots";
+import { mayHoldBooks } from "@/lib/access";
 import { inr, num, toPaise, todayIST } from "@/lib/format";
 import { allocateTitle } from "@/lib/stall-math";
 import { canCreateStall, settleIfDone, logStall, participatingDhams, ref, stallAccess, stallStock, type Stall } from "@/lib/stalls";
@@ -128,6 +129,7 @@ async function freeCopies(tx: Tx, ownerId: string) {
 
 export async function contribute(_: ActionState, fd: FormData): Promise<ActionState> {
   const u = await requireApproved(...ROLES);
+  if (!u.canDistribute) return fail("Book Distribution is not turned on for you.");
   const id = Number(fd.get("stallId"));
   const clientKey = String(fd.get("clientKey") || "").slice(0, 64) || null;
   const ownerId = String(fd.get("ownerId") || u.id);
@@ -147,6 +149,10 @@ export async function contribute(_: ActionState, fd: FormData): Promise<ActionSt
     if (!(await isAcceptedParticipant(tx, id, ownerId))) return fail("The owner must first accept the invitation.");
     // You add your own copies (confirmed at once). The coordinator may propose copies for someone — that owner confirms.
     if (ownerId !== u.id && s.coordinatorId !== u.id) return fail("You can add only your own books.");
+    if (ownerId !== u.id) {
+      const [ow] = await tx.select().from(schema.user).where(eq(schema.user.id, ownerId));
+      if (!ow || !mayHoldBooks(ow)) return fail("That owner can't add books: Book Distribution is not turned on for them.");
+    }
     if (clientKey) {
       const [dup] = await tx.select({ id: schema.stallContribution.id }).from(schema.stallContribution)
         .where(and(eq(schema.stallContribution.stallId, id), eq(schema.stallContribution.clientKey, clientKey)));
@@ -181,6 +187,7 @@ export async function confirmContribution(_: ActionState, fd: FormData): Promise
     if (s.status !== "draft" && s.status !== "active") return fail("This stall is closing; books can't be added now.");
     if (c.status !== "proposed") return ok("Already done.");
     if (accept) {
+      if (!u.canDistribute) return fail("Book Distribution is not turned on for you.");
       await lockHolders(tx, [H.devotee(u.id)]);
       const free = await freeCopies(tx, u.id);
       if (c.qty > (free.get(c.bookId) ?? 0)) return fail(`You have only ${num(Math.max(free.get(c.bookId) ?? 0, 0))} free copies of this book.`);
@@ -261,6 +268,7 @@ export async function cancelStall(_: ActionState, fd: FormData): Promise<ActionS
 
 export async function quickSell(_: ActionState, fd: FormData): Promise<ActionState> {
   const u = await requireApproved(...ROLES);
+  if (!u.canDistribute) return fail("Book Distribution is not turned on for you.");
   const id = Number(fd.get("stallId"));
   const clientKey = String(fd.get("clientKey") || "").slice(0, 64);
   if (!clientKey) return fail("Please refresh the page and try again.");
@@ -283,6 +291,10 @@ export async function quickSell(_: ActionState, fd: FormData): Promise<ActionSta
     if (!(await isAcceptedParticipant(tx, id, u.id))) return fail("Only stall participants can sell here.");
     const recipientId = String(fd.get("recipientId") || u.id);
     if (recipientId !== u.id && !(await isAcceptedParticipant(tx, id, recipientId))) return fail("The person who received the money must be a stall participant.");
+    if (recipientId !== u.id) {
+      const [rc] = await tx.select().from(schema.user).where(eq(schema.user.id, recipientId));
+      if (!rc || !mayHoldBooks(rc)) return fail("That person can't take stall money: Book Distribution is not turned on for them.");
+    }
     const stock = new Map((await stallStock(id, tx)).map((x) => [x.book_id, x]));
     for (const l of lines) {
       const st = stock.get(l.bookId);

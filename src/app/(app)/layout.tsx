@@ -4,7 +4,7 @@ import { maybeCheckpoint } from "@/lib/stock";
 import { and, count, eq } from "drizzle-orm";
 import { requireSignedIn } from "@/lib/session";
 import { db, schema } from "@/db";
-import { navFor } from "@/lib/nav";
+import { bottomNavFor, navFor } from "@/lib/nav";
 import { navBadges } from "@/lib/nav-badges";
 import { ROLE_LABEL } from "@/lib/terms";
 import { BottomNav, DesktopSidebar, MobileMenu } from "@/components/nav";
@@ -113,7 +113,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <NavLoader>{children}</NavLoader>
         </main>
       </div>
-      <BottomNav items={items} />
+      <BottomNav items={bottomNavFor(u)} />
     </div>
   );
 }

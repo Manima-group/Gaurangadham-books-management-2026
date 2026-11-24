@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { requireUser } from "@/lib/session";
+import { requireApproved } from "@/lib/session";
 import { moneySummary } from "@/lib/stats";
 import { fmtDate, inr, todayIST } from "@/lib/format";
 import { METHOD_LABEL, moneyPosition } from "@/lib/terms";
@@ -11,7 +11,7 @@ import { DeleteButton } from "@/components/delete";
 import { deleteMoney } from "@/app/actions/money";
 
 export default async function MyMoney() {
-  const u = await requireUser("devotee", "manager");
+  const u = await requireApproved("devotee", "manager"); // money already collected can be handed over even after Book Distribution is turned off
   const [m, rows, stalls] = await Promise.all([
     moneySummary({ devoteeId: u.id }),
     db.select().from(schema.moneySubmission).where(eq(schema.moneySubmission.devoteeId, u.id)).orderBy(desc(schema.moneySubmission.createdAt)),

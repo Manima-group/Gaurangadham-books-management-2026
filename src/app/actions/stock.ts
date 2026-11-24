@@ -11,6 +11,7 @@ import { H, holderStock, lockHolders, pendingReportedQty } from "@/lib/stock";
 import { findCampaign } from "@/lib/campaign";
 import { reverseMovements } from "@/lib/ledger";
 import { availableFor } from "@/lib/transfers";
+import { mayHoldBooks } from "@/lib/access";
 import { createLot, insertMovements, SOURCE_LABEL } from "@/lib/lots";
 import { num, todayIST } from "@/lib/format";
 
@@ -176,6 +177,7 @@ export async function assignToDevotee(_: ActionState, fd: FormData): Promise<Act
     .where(and(eq(schema.user.id, devoteeId), inArray(schema.user.role, ["devotee", "manager"])));
   if (!dev || !dev.dhamId) return fail("Please choose the devotee.");
   if (u.role === "manager" && dev.dhamId !== u.dhamId) return fail("This devotee belongs to another Dham.");
+  if (!mayHoldBooks(dev)) return fail(`Books can't be given to ${dev.name}.`, "Book Distribution is not turned on for them (or their registration is not approved).");
   const dhamId = dev.dhamId;
 
   const { lines, errors } = readQtys(fd);

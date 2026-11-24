@@ -6,7 +6,7 @@ import { z } from "zod";
 import { settleIfDone, stallCollectedBy } from "@/lib/stalls";
 import { db, schema } from "@/db";
 import { fail, fromZod, ok, type ActionState } from "@/lib/action";
-import { requireUser } from "@/lib/session";
+import { requireApproved, requireUser } from "@/lib/session";
 import { dhamManagers, logActivity, notify } from "@/lib/activity";
 import { lockKey } from "@/lib/stock";
 import { fmtDate, inr, toPaise, todayIST } from "@/lib/format";
@@ -44,7 +44,8 @@ const MoneySchema = z
 /* ---------------- STEP 6: Money submission (devotee) ---------------- */
 
 export async function submitMoney(_: ActionState, fd: FormData): Promise<ActionState> {
-  const u = await requireUser("devotee", "manager");
+  // Approved is enough: a devotee whose Book Distribution was turned off can still hand over money already collected.
+  const u = await requireApproved("devotee", "manager");
   if (!u.dhamId) return fail("You are not linked to a Dham yet.");
   const p = MoneySchema.safeParse(Object.fromEntries(fd));
   if (!p.success) return fromZod(p.error);

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { requireApproved } from "@/lib/session";
+import { requireOutreach } from "@/lib/session";
 import { contactStats, DUP_LABEL, INTERESTS, listContacts, type ContactFilter } from "@/lib/outreach";
 import { num, todayIST } from "@/lib/format";
 import { Card, PageHeader, Section, StatCard } from "@/components/ui";
@@ -14,7 +14,7 @@ import { eventsFor } from "./data";
 
 /** Outreach Contacts for Chakra Sevak (all Dhams) and Sector Sevak (own Dham): records, filters, duplicate review, events. */
 export default async function ContactsPage({ searchParams }: { searchParams: Promise<ContactFilter> }) {
-  const u = await requireApproved("contact", "devotee", "manager", "admin");
+  const u = await requireOutreach("contact", "devotee", "manager", "admin");
   if (u.role === "contact" || u.role === "devotee") redirect("/contacts/mine");
   const sp = await searchParams;
   const keep = { q: sp.q, from: sp.from, to: sp.to, dham: sp.dham, collector: sp.collector, event: sp.event, interest: sp.interest, dup: sp.dup, consent: sp.consent };

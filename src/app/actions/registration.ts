@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { auth, hashPassword } from "@/lib/auth";
@@ -63,7 +63,6 @@ export async function registerDevotee(_: ActionState, fd: FormData): Promise<Act
   if (ctx.state !== "ok")
     return fail("This registration link is not valid any more.", "Please ask your Sector Sevak for a new QR code or link.");
   const ip = ipHash(await clientIp());
-  const hourAgo = new Date(Date.now() - 3_600_000);
   const [{ byIp }] = (await db.execute(
     sql`select count(*)::int as "byIp" from registration_attempt where ip_hash = ${ip} and created_at > now() - interval '1 hour'`,
   )) as unknown as { byIp: number }[];
@@ -112,7 +111,7 @@ export async function registerDevotee(_: ActionState, fd: FormData): Promise<Act
   await db
     .update(schema.registrationAttempt)
     .set({ ok: true })
-    .where(and(eq(schema.registrationAttempt.ipHash, ip), eq(schema.registrationAttempt.inviteId, ctx.invite.id), gt(schema.registrationAttempt.createdAt, hourAgo)));
+    .where(and(eq(schema.registrationAttempt.ipHash, ip), eq(schema.registrationAttempt.inviteId, ctx.invite.id), sql`${schema.registrationAttempt.createdAt} > now() - interval '1 hour'`));
   await logActivity(id, `${d.name} registered with the ${ctx.dham.name} QR — awaiting Sector Sevak approval`, { dhamId: ctx.dham.id });
   await notify(await dhamManagers(ctx.dham.id, true), "New registration request", `${d.name} registered for ${ctx.dham.name}. Please review.`, "/people/requests");
   try {
@@ -189,11 +188,34 @@ export async function setAccess(_: ActionState, fd: FormData): Promise<ActionSta
   const changed = await db.update(schema.user).set({ [col]: value })
     .where(and(eq(schema.user.id, id), eq(schema.user[col], old))).returning({ id: schema.user.id });
   if (!changed.length) return fail("Someone else just changed this. Please refresh and try again.");
-  await audit(id, u.id, permission, old ? "on" : "off", value ? "on" : "off", reason);
+  // Turning Book Distribution off never removes stock or money: we record what they still hold so the Sevak can take it back.
+  let still = "";
+  if (permission === "book_distribution" && !value) {
+    const [x] = (await db.execute(sql`
+      select
+        coalesce((select sum(case when m.to_holder = ${"devotee:" + id} then m.qty else -m.qty end) from stock_movement m where ${"devotee:" + id} in (m.to_holder, m.from_holder)), 0)::int as books,
+        (coalesce((select sum(collected_paise) from daily_report where devotee_id = ${id} and status in ('submitted','approved','changes_required')), 0)
+          + coalesce((select sum(total_paise) from stall_sale where recipient_id = ${id}), 0)
+          - coalesce((select sum(amount_paise) from money_submission where devotee_id = ${id} and status <> 'disputed'), 0))::bigint as money,
+        (select count(*) from dham_transfer t where t.status in ('requested','approved','accepted','sent','partially_received') and ${"devotee:" + id} in (coalesce(t.to_holder,''), coalesce(t.from_holder,'')))::int as transfers,
+        (select count(distinct c.stall_id) from stall_contribution c join book_stall b on b.id = c.stall_id
+          where c.user_id = ${id} and c.status = 'confirmed' and b.status in ('draft','active','closing','disputed','pending_approval'))::int as stalls`)) as unknown as { books: number; money: number; transfers: number; stalls: number }[];
+    const parts = [
+      Number(x.books) > 0 ? `${x.books} books in hand` : "",
+      Number(x.money) > 0 ? `₹${(Number(x.money) / 100).toLocaleString("en-IN")} not handed over` : "",
+      Number(x.transfers) > 0 ? `${x.transfers} open transfer(s)` : "",
+      Number(x.stalls) > 0 ? `books on ${x.stalls} open stall(s)` : "",
+    ].filter(Boolean);
+    still = parts.join(", ");
+  }
+  await audit(id, u.id, permission, old ? "on" : "off", value ? "on" : "off", [reason, still ? `Still holds: ${still}` : ""].filter(Boolean).join(" · ") || null);
   const label = permission === "book_distribution" ? "Book Distribution" : "Dham Sales View";
   await logActivity(u.id, `${u.name} turned ${value ? "on" : "off"} ${label} for ${p.name}`, { dhamId: p.dhamId });
   await notify([id], `${label} ${value ? "turned on" : "turned off"}`, value ? "You can use it now." : undefined, "/dashboard");
   revalidatePath("/people");
   revalidatePath(`/people/requests`);
-  return ok(`${label} ${value ? "enabled" : "disabled"} for ${p.name}.`);
+  return ok(
+    `${label} ${value ? "enabled" : "disabled"} for ${p.name}.`,
+    still ? `${p.name} still has ${still}. Nothing was removed — use Take Back Books for the books; they can still hand over money with Submit Money.` : undefined,
+  );
 }

@@ -48,7 +48,10 @@ export default async function NewTransferPage({ searchParams }: { searchParams: 
     const dhams = await db.select({ id: schema.dham.id, name: schema.dham.name }).from(schema.dham)
       .where(u.role === "admin" ? eq(schema.dham.isActive, true) : eq(schema.dham.id, u.dhamId ?? -1)).orderBy(schema.dham.name);
     const people = await db.select({ id: schema.user.id, name: schema.user.name, dhamId: schema.user.dhamId }).from(schema.user)
-      .where(and(eq(schema.user.isActive, true), inArray(schema.user.role, ["devotee"]), u.role === "admin" ? undefined : eq(schema.user.dhamId, u.dhamId ?? -1)))
+      .where(and(eq(schema.user.isActive, true), inArray(schema.user.role, ["devotee"]),
+        // only devotees who may receive books (approved, Book Distribution on)
+        eq(schema.user.approvalStatus, "approved"), eq(schema.user.canDistributeBooks, true),
+        u.role === "admin" ? undefined : eq(schema.user.dhamId, u.dhamId ?? -1)))
       .orderBy(schema.user.name);
     const dn = new Map(dhams.map((d) => [d.id, d.name]));
     dests = [
