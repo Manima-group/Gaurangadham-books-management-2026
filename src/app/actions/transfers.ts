@@ -7,6 +7,7 @@ import { fail, ok, type ActionState } from "@/lib/action";
 import { requireUser, type AppUser } from "@/lib/session";
 import { logActivity, notify, dhamManagers } from "@/lib/activity";
 import { holderStock, lockHolders, lockKey } from "@/lib/stock";
+import { mayHoldBooks } from "@/lib/access";
 import { insertMovements } from "@/lib/lots";
 import { num, todayIST } from "@/lib/format";
 import {
@@ -87,6 +88,14 @@ async function resolveHolder(h: string): Promise<{ dhamId: number; devoteeId: st
   return null;
 }
 
+/** A devotee receiver must be allowed to hold books (approved, Book Distribution on). Returns their name when not. */
+async function receiverBlocked(exec: Pick<typeof db, "select">, holder: string): Promise<string | null> {
+  if (!isDevoteeHolder(holder)) return null;
+  const [p] = await exec.select().from(schema.user).where(eq(schema.user.id, holder.slice(8)));
+  return p && !mayHoldBooks(p) ? p.name : null;
+}
+const BLOCKED = (name: string) => `${name} can't receive books: Book Distribution is not turned on for them.`;
+
 /** Where may this person ask books to be delivered? */
 function mayRequestTo(u: AppUser, dst: { dhamId: number; devoteeId: string | null }) {
   if (u.role === "admin") return true;
@@ -114,6 +123,8 @@ export async function requestTransfer(_: ActionState, fd: FormData): Promise<Act
   const [src, dst] = await Promise.all([resolveHolder(source), resolveHolder(dest)]);
   if (!src) return fail("That source is not available.", undefined, { source: "Choose another source" });
   if (!dst) return fail("That receiver is not available.", undefined, { dest: "Choose who receives" });
+  const blocked = await receiverBlocked(db, dest);
+  if (blocked) return fail(BLOCKED(blocked), undefined, { dest: "Choose who receives" });
   if (!mayRequestTo(u, dst)) return fail("You can't request books for that receiver.", u.role === "devotee" ? "Ask your Chakra Sevak for Book Availability access." : undefined);
   // A devotee may only see/ask other devotees' stock when given availability access; a Sector Sevak
   // without access may still ask Dham shelves and their own devotees.
@@ -178,6 +189,10 @@ export async function approveTransfer(_: ActionState, fd: FormData): Promise<Act
     const x = await load(id, tx);
     if (!x) return { err: "This request was not found." };
     const { t, lines } = x;
+    if (!decline) {
+      const blocked = await receiverBlocked(tx, toHolderOf(t));
+      if (blocked) return { err: BLOCKED(blocked) };
+    }
     if (!canApprove(u, t)) return { err: "Only the person who has these books (or their Sector Sevak) can approve this." };
     if (t.status !== "requested") return { err: "This request was already answered." };
     if (decline) {
@@ -271,6 +286,8 @@ export async function dispatchTransfer(_: ActionState, fd: FormData): Promise<Ac
     if (!x) return { err: "This transfer was not found." };
     const { t, lines } = x;
     if (!canSend(u, t)) return { err: "Only the sender can send these books." };
+    const blocked = await receiverBlocked(tx, toHolderOf(t));
+    if (blocked) return { err: BLOCKED(blocked) + " Cancel this transfer, or ask the Sector Sevak to turn it on." };
     if (t.status !== "approved" && t.status !== "accepted") return { err: t.status === "sent" ? "These books were already sent." : "This transfer is not ready to send." };
     const src = fromHolderOf(t);
     await lockHolders(tx, [src]);

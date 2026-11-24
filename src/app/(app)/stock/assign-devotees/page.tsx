@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/session";
 import { activeBooks, activeDhams, devoteesOf } from "@/lib/lookups";
+import { mayHoldBooks } from "@/lib/access";
 import { H, holderStock, total } from "@/lib/stock";
 import { devoteeBooks } from "@/lib/devotee";
 import { num, todayIST } from "@/lib/format";
@@ -14,9 +15,12 @@ export default async function AssignDevoteesPage({ searchParams }: { searchParam
   const dhamId = u.role === "manager" ? u.dhamId! : Number(sp.dham) || null;
   const dhamName = u.role === "manager" ? u.dhamName : dhams.find((d) => d.id === dhamId)?.name;
 
-  const [books, devotees, store] = dhamId
+  const [books, everyone, store] = dhamId
     ? await Promise.all([activeBooks(), devoteesOf(dhamId), holderStock(H.dham(dhamId))])
     : [[], [], new Map<number, number>()];
+  // Only people who may hold books: Sevaks, and devotees who are approved with Book Distribution on.
+  const devotees = everyone.filter((d) => mayHoldBooks(d));
+  const notEligible = everyone.length - devotees.length;
   const dev = devotees.find((d) => d.id === sp.devotee);
   const holding = dev ? await devoteeBooks(dev.id) : [];
   const avail = books.filter((b) => (store.get(b.id) ?? 0) > 0).map((b) => ({ id: b.id, title: b.title, language: b.language, coverUrl: b.coverUrl, available: store.get(b.id)! }));
@@ -52,6 +56,7 @@ export default async function AssignDevoteesPage({ searchParams }: { searchParam
                 </Field>
               )
             )}
+            {notEligible > 0 && <p className="text-xs text-ink-500" data-testid="assign-hidden-note">{notEligible} devotee{notEligible === 1 ? " is" : "s are"} not listed: Book Distribution is not turned on (or registration not approved).</p>}
             <button className="btn-secondary w-full">Continue</button>
           </form>
           {dev && (

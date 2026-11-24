@@ -1,13 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { fail, fromZod, ok, type ActionState } from "@/lib/action";
-import { requireUser, requireApproved } from "@/lib/session";
+import { requireUser, requireOutreach } from "@/lib/session";
 import { canDeleteContact, canEditContact, canManageContacts, canSeeContact, INTERESTS, normalizeMobile } from "@/lib/outreach";
 import { notify } from "@/lib/activity";
+import { CONTACT_RATE } from "@/lib/access";
 
 /**
  * Outreach contact actions. Only Contact Collection Sevaks, Sector Sevaks and Chakra Sevaks.
@@ -32,7 +33,7 @@ const ContactSchema = z
     }),
     area: z.string().trim().min(2, "Please enter the address or area.").max(120),
     interests: z.array(z.enum(KEYS)).min(1, "Choose at least one activity."),
-    consent: z.literal("on", { message: "Please confirm they agreed to be contacted." }),
+    consent: z.literal("on", { errorMap: () => ({ message: "Please confirm they agreed to be contacted." }) }),
     email: z.string().trim().toLowerCase().optional().transform((v) => (v ? v : null))
       .refine((v) => !v || z.string().email().safeParse(v).success, "Please enter a valid email or leave it empty."),
     city: opt(60), ageGroup: opt(60), language: opt(40), contactTime: opt(60), location: opt(120), remarks: opt(300), childName: opt(40),
@@ -56,7 +57,7 @@ async function audit(contactId: number, userId: string, action: string) {
 
 /** Add a contact. A repeated tap (same form key) is saved once. A number already on file is flagged for review. */
 export async function addContact(_: ActionState, fd: FormData): Promise<ActionState> {
-  const u = await requireApproved("contact", "devotee", "manager", "admin");
+  const u = await requireOutreach("contact", "devotee", "manager", "admin");
   const parsed = read(fd);
   if (!parsed.success) return fromZod(parsed.error, "Please check the highlighted fields.");
   const d = parsed.data;
@@ -70,6 +71,14 @@ export async function addContact(_: ActionState, fd: FormData): Promise<ActionSt
       const [again] = await tx.select({ id: schema.outreachContact.id }).from(schema.outreachContact)
         .where(and(eq(schema.outreachContact.collectorId, u.id), eq(schema.outreachContact.clientKey, clientKey)));
       if (again) return { id: again.id, repeat: true, possible: false };
+    }
+    // Spam guard: a per-person hourly limit, stricter while a QR registration still awaits approval.
+    if (u.role !== "admin" && u.role !== "manager") {
+      const limit = u.approvalStatus === "approved" ? CONTACT_RATE.perHour : CONTACT_RATE.pendingPerHour;
+      // created_at is written by the app in UTC; the DB session runs in IST, so compare against a UTC cutoff (not now()).
+      const since = new Date(Date.now() - 3_600_000).toISOString().replace("T", " ").replace("Z", "");
+      const [{ n }] = (await tx.execute(sql`select count(*)::int as n from outreach_contact where collector_id = ${u.id} and created_at > ${since}::timestamp`)) as unknown as { n: number }[];
+      if (Number(n) >= limit) return { id: 0, repeat: false, possible: false, limited: true };
     }
     const [dup] = await tx.select({ id: schema.outreachContact.id }).from(schema.outreachContact).where(eq(schema.outreachContact.mobile, d.mobile)).limit(1);
     const now = new Date();
@@ -88,6 +97,7 @@ export async function addContact(_: ActionState, fd: FormData): Promise<ActionSt
   });
   revalidatePath("/contacts");
   revalidatePath("/dashboard");
+  if ("limited" in result) return fail("Too many contacts in one hour.", "Please wait a little and add the rest later.");
   if (result.repeat) return ok("Already saved.", "This contact was saved a moment ago — it was not added twice.");
   if (result.possible) {
     // Tell the reviewers, never the details of the other record.
@@ -103,7 +113,7 @@ export async function addContact(_: ActionState, fd: FormData): Promise<ActionSt
 }
 
 export async function updateContact(_: ActionState, fd: FormData): Promise<ActionState> {
-  const u = await requireApproved("contact", "devotee", "manager", "admin");
+  const u = await requireOutreach("contact", "devotee", "manager", "admin");
   const id = Number(fd.get("id"));
   const [c] = await db.select().from(schema.outreachContact).where(eq(schema.outreachContact.id, id));
   if (!c || !canEditContact(u, c)) return fail("This contact was not found.");
@@ -125,7 +135,7 @@ export async function updateContact(_: ActionState, fd: FormData): Promise<Actio
 }
 
 export async function deleteContact(_: ActionState, fd: FormData): Promise<ActionState> {
-  const u = await requireApproved("contact", "devotee", "manager", "admin");
+  const u = await requireOutreach("contact", "devotee", "manager", "admin");
   const id = Number(fd.get("id"));
   const [c] = await db.select().from(schema.outreachContact).where(eq(schema.outreachContact.id, id));
   if (!c || !canSeeContact(u, c)) return fail("This contact was not found.");

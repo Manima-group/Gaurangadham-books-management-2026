@@ -47,7 +47,8 @@ export const getUser = cache(async (): Promise<AppUser | null> => {
     onboarded: u.onboarded,
     dhamName,
     isCoSevak: u.isCoSevak,
-    canSeeAvailability: u.approvalStatus === "approved" && (u.role === "admin" || ((u.role === "manager" || u.role === "devotee") && u.canSeeAvailability)),
+    // Book Availability stays its own grant (Chakra Sevak gives it). For a devotee it works only while Book Distribution is on too.
+    canSeeAvailability: u.approvalStatus === "approved" && (u.role === "admin" || (u.role === "manager" && u.canSeeAvailability) || (u.role === "devotee" && u.canSeeAvailability && u.canDistributeBooks)),
     approvalStatus: u.approvalStatus,
     canDistribute: u.approvalStatus === "approved" && (u.role !== "devotee" || u.canDistributeBooks),
     canViewDhamSales: u.approvalStatus === "approved" && (u.role === "admin" || u.role === "manager" || (u.role === "devotee" && u.canViewDhamSales)),
@@ -88,4 +89,17 @@ export async function requireSignedIn(): Promise<AppUser> {
 export function scopeDham(u: AppUser, requested?: number | null) {
   if (u.role === "admin") return requested ?? null;
   return u.dhamId ?? -1;
+}
+
+/**
+ * Outreach (contact collection): approved users of `roles`, and also a devotee whose QR registration is
+ * still pending — they may collect contacts before approval. Rejected registrations may not.
+ */
+export async function requireOutreach(...roles: Role[]): Promise<AppUser> {
+  const u = await getUser();
+  if (!u) redirect("/login");
+  const pendingDevotee = u.approvalStatus === "pending" && u.role === "devotee";
+  if (u.approvalStatus !== "approved" && !pendingDevotee) redirect("/dashboard");
+  if (!roles.includes(u.role)) redirect("/dashboard?denied=1");
+  return u;
 }

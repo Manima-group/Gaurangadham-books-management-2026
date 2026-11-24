@@ -4,6 +4,7 @@
 | Suite | Command | Covers |
 |---|---|---|
 | Four features e2e | `npm run db:reset && python3 e2e/four_features.py` | QR invite/PDF/landing/sign-up/pending denial/duplicates/approval/toggles/audit/revoke; payment split & optional reference & replay idempotency; source picker, source report, no source leakage to devotees; full stall (15/5/5 → 9/3/3 → 11/2/2 → 4/3/3), reservations, concurrency, undo, replay, approval, posting, settlement. |
+| Permissions e2e | `npm run db:reset && python3 e2e/permissions.py` | Pending login + outreach, consent, duplicates, rate limit, rejected; bottom bar per state; Assign Books / transfer receiver / stall restrictions incl. replayed direct request; Availability vs Dham Sales View vs Distribution; revoke with holdings, audit, money handover, take back, re-enable. |
 | Stall math unit | `npx tsx tests/stall-math.test.ts` | Largest remainder, worked examples, transfers, loss, conservation over all S/R combinations. |
 | Regression e2e | `features, transfers, transfers_more, outreach, pdf, hierarchy, book_import, race, devotee_contacts, run.py` (each after `npm run db:reset`) | Existing behaviour. |
 | Checkpoint unit | `npx tsx --conditions=react-server tests/checkpoint.test.ts` | Ledger checkpoints. |

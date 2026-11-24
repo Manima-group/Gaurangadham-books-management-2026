@@ -1,6 +1,6 @@
 import type { Role } from "./terms";
 
-export type NavItem = { href: string; label: string; icon: string; mobile?: boolean; group?: string; short?: string; needs?: "availability" | "distribute" | "dhamSales" };
+export type NavItem = { href: string; label: string; icon: string; mobile?: boolean; group?: string; short?: string; needs?: "availability" | "distribute" | "dhamSales"; /** open to a devotee whose registration is still pending */ outreach?: boolean };
 
 /**
  * Menu items, grouped into short sections so each menu shows a few clear headings.
@@ -68,8 +68,8 @@ export const NAV: Record<Role, NavItem[]> = {
     { href: "/transfers", label: "Books Transfer", icon: "🚚", needs: "distribute" },
     { href: "/availability", label: "Book Availability", icon: "🔎", needs: "availability" },
     { href: "/dham-sales", label: "Dham Sales", icon: "📊", needs: "dhamSales" },
-    { href: "/contacts/new", label: "Collect Contacts", icon: "➕", group: "Outreach" },
-    { href: "/contacts/mine", label: "My Contacts", icon: "📇", group: "Outreach" },
+    { href: "/contacts/new", label: "Collect Contacts", short: "Outreach", icon: "➕", group: "Outreach", outreach: true },
+    { href: "/contacts/mine", label: "My Contacts", short: "Contacts", icon: "📇", group: "Outreach", outreach: true },
   ],
   // Contact Collection Sevak: outreach only — nothing about books, stock or money.
   contact: [
@@ -82,12 +82,33 @@ export const NAV: Record<Role, NavItem[]> = {
 
 /** Menu for this person: items needing an access grant show only when a Chakra Sevak gave it. */
 export function navFor(u: { role: Role; canSeeAvailability: boolean; approvalStatus: string; canDistribute: boolean; canViewDhamSales: boolean }): NavItem[] {
-  // Awaiting approval (or not approved): only Home; the account link is always in the menu footer.
-  if (u.approvalStatus !== "approved") return NAV[u.role].filter((i) => i.href === "/dashboard");
+  // Awaiting approval: Home and outreach (contact collection) only. Rejected: Home only.
+  // The account link is always in the menu footer.
+  if (u.approvalStatus !== "approved")
+    return NAV[u.role].filter((i) => i.href === "/dashboard" || (u.approvalStatus === "pending" && u.role === "devotee" && i.outreach));
   return NAV[u.role].filter(
     (i) =>
       (i.needs !== "availability" || u.canSeeAvailability) &&
       (i.needs !== "distribute" || u.canDistribute) &&
       (i.needs !== "dhamSales" || u.canViewDhamSales),
   );
+}
+
+const PROFILE: NavItem = { href: "/account", label: "Profile", icon: "👤", mobile: true };
+
+/**
+ * Mobile bottom bar — at most 5 icons, most-used first, from what this person may open.
+ * Devotees: pending → Home, Outreach, Contacts, Profile. With Book Distribution → Home, Sales, Books, Money,
+ * then Outreach. Without it → Home, Outreach, Contacts, Dham Sales (if given), Profile. Everything else stays in the ☰ menu.
+ */
+export function bottomNavFor(u: Parameters<typeof navFor>[0]): NavItem[] {
+  const items = navFor(u);
+  if (u.role !== "devotee") return items.filter((i) => i.mobile).slice(0, 5);
+  const by = (href: string) => items.find((i) => i.href === href);
+  const order = u.approvalStatus === "approved" && u.canDistribute
+    ? ["/dashboard", "/my/sales", "/my/books", "/my/money", "/contacts/new"]
+    : ["/dashboard", "/contacts/new", "/contacts/mine", "/dham-sales"];
+  const list = order.map(by).filter((i): i is NavItem => !!i);
+  if (!(u.approvalStatus === "approved" && u.canDistribute)) list.push(PROFILE);
+  return list.slice(0, 5).map((i) => ({ ...i, mobile: true }));
 }

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { requireApproved } from "@/lib/session";
+import { requireOutreach } from "@/lib/session";
 import { AGE_GROUPS, canDeleteContact, canManageContacts, canSeeContact, DUP_LABEL, INTEREST_LABEL, INTERESTS } from "@/lib/outreach";
 import { fmtDateTime } from "@/lib/format";
 import { Badge, Card, PageHeader } from "@/components/ui";
@@ -12,7 +12,7 @@ import { eventsFor } from "../data";
 
 /** One contact: details, consent, who collected it, duplicate review, corrections and deletion. */
 export default async function ContactPage({ params }: { params: Promise<{ id: string }> }) {
-  const u = await requireApproved("contact", "devotee", "manager", "admin");
+  const u = await requireOutreach("contact", "devotee", "manager", "admin");
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
   const [c] = await db.select().from(schema.outreachContact).where(eq(schema.outreachContact.id, id));

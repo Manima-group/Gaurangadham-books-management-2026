@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireApproved } from "@/lib/session";
+import { requireOutreach } from "@/lib/session";
 import { listContacts, type ContactFilter } from "@/lib/outreach";
 import { num } from "@/lib/format";
 import { PageHeader } from "@/components/ui";
@@ -7,7 +7,7 @@ import { ContactList } from "../list";
 
 /** My Contacts — only the records this person collected, with search and dates. */
 export default async function MyContactsPage({ searchParams }: { searchParams: Promise<ContactFilter> }) {
-  const u = await requireApproved("contact", "devotee", "manager", "admin");
+  const u = await requireOutreach("contact", "devotee", "manager", "admin");
   const sp = await searchParams;
   const f = { q: sp.q, from: sp.from, to: sp.to, page: sp.page };
   const data = await listContacts(u, f, true);
